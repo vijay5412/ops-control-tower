@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Ops Bridge — Production Incident Command</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0a0d14;
+  --surface: #111520;
+  --surface2: #161c2d;
+  --surface3: #1c2438;
+  --border: #232b3e;
+  --border2: #2a3450;
+  --text: #e8eaf0;
+  --text2: #8892aa;
+  --text3: #5a6480;
+  --accent: #3b82f6;
+  --accent2: #1d4ed8;
+  --high: #ef4444;
+  --high-bg: rgba(239,68,68,0.1);
+  --medium: #f59e0b;
+  --medium-bg: rgba(245,158,11,0.1);
+  --status-analysis: #6366f1;
+  --status-validation: #f59e0b;
+  --status-resolved: #10b981;
+  --status-closed: #6b7280;
+  --sla-warn: #f59e0b;
+  --sla-breach: #ef4444;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --font: 'Inter', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* LOGIN */
+#login-screen {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; z-index: 1000;
+}
+.login-box {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 16px; padding: 48px 40px; width: 380px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+}
+.login-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+.login-logo-icon {
+  width: 44px; height: 44px; background: var(--accent);
+  border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+}
+.login-logo-text { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+.login-logo-sub { font-size: 11px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+.login-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+.login-sub { font-size: 12px; color: var(--text2); margin-bottom: 28px; }
+.login-input {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px 14px; color: var(--text);
+  font-family: var(--mono); font-size: 14px; margin-bottom: 16px;
+  transition: border-color 0.2s;
+}
+.login-input:focus { outline: none; border-color: var(--accent); }
+.login-btn {
+  width: 100%; background: var(--accent); border: none; border-radius: var(--radius-sm);
+  padding: 12px; color: #fff; font-family: var(--font); font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: background 0.2s;
+}
+.login-btn:hover { background: var(--accent2); }
+.login-error { color: var(--high); font-size: 12px; margin-top: 10px; display: none; }
+.login-view-btn {
+  width: 100%; background: transparent; border: 1px solid var(--border2);
+  border-radius: var(--radius-sm); padding: 10px; color: var(--text2);
+  font-family: var(--font); font-size: 13px; cursor: pointer; margin-top: 10px;
+  transition: border-color 0.2s, color 0.2s;
+}
+.login-view-btn:hover { border-color: var(--accent); color: var(--text); }
+
+/* LAYOUT */
+#app { display: none; flex-direction: column; min-height: 100vh; }
+#app.visible { display: flex; }
+
+/* TOPBAR */
+.topbar {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 0 24px; height: 60px; display: flex; align-items: center;
+  justify-content: space-between; position: sticky; top: 0; z-index: 100;
+}
+.topbar-left { display: flex; align-items: center; gap: 16px; }
+.topbar-logo {
+  display: flex; align-items: center; gap: 10px;
+}
+.topbar-icon {
+  width: 34px; height: 34px; background: var(--accent);
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.topbar-title { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+.topbar-subtitle { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; }
+.topbar-divider { width: 1px; height: 28px; background: var(--border); }
+.topbar-badge {
+  font-size: 11px; color: var(--text3); font-family: var(--mono);
+}
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-refresh {
+  font-size: 11px; color: var(--text3); display: flex; align-items: center; gap: 6px;
+}
+.refresh-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--status-resolved);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.admin-badge {
+  background: var(--accent); color: #fff; font-size: 10px; font-weight: 600;
+  padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.logout-btn {
+  background: transparent; border: 1px solid var(--border2); border-radius: var(--radius-sm);
+  padding: 6px 12px; color: var(--text2); font-size: 12px; cursor: pointer;
+  transition: all 0.2s;
+}
+.logout-btn:hover { border-color: var(--high); color: var(--high); }
+
+/* MAIN */
+.main { padding: 24px; max-width: 1600px; margin: 0 auto; width: 100%; }
+
+/* KPI CARDS */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px; margin-bottom: 24px;
+}
+.kpi {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 18px;
+  transition: border-color 0.2s;
+}
+.kpi:hover { border-color: var(--border2); }
+.kpi-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+.kpi-value { font-size: 28px; font-weight: 700; font-family: var(--mono); line-height: 1; margin-bottom: 4px; }
+.kpi-sub { font-size: 11px; color: var(--text2); }
+.kpi.total .kpi-value { color: var(--text); }
+.kpi.analysis .kpi-value { color: var(--status-analysis); }
+.kpi.validation .kpi-value { color: var(--status-validation); }
+.kpi.resolved .kpi-value { color: var(--status-resolved); }
+.kpi.closed .kpi-value { color: var(--status-closed); }
+.kpi.sla .kpi-value { color: var(--sla-breach); }
+
+/* CHARTS ROW */
+.charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+.chart-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px;
+}
+.chart-title { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; }
+.chart-wrap { position: relative; height: 160px; }
+
+/* TOOLBAR */
+.toolbar {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.toolbar-left { display: flex; align-items: center; gap: 8px; flex: 1; }
+.search-wrap { position: relative; }
+.search-input {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 8px 12px 8px 32px;
+  color: var(--text); font-family: var(--font); font-size: 13px; width: 240px;
+  transition: border-color 0.2s;
+}
+.search-input:focus { outline: none; border-color: var(--accent); }
+.search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 14px; }
+.filter-select {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 8px 12px; color: var(--text2);
+  font-family: var(--font); font-size: 13px; cursor: pointer;
+  transition: border-color 0.2s;
+}
+.filter-select:focus { outline: none; border-color: var(--accent); }
+.toolbar-right { display: flex; gap: 8px; }
+.btn-primary {
+  background: var(--accent); border: none; border-radius: var(--radius-sm);
+  padding: 8px 16px; color: #fff; font-family: var(--font); font-size: 13px;
+  font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: background 0.2s;
+}
+.btn-primary:hover { background: var(--accent2); }
+.btn-secondary {
+  background: transparent; border: 1px solid var(--border2); border-radius: var(--radius-sm);
+  padding: 8px 14px; color: var(--text2); font-family: var(--font); font-size: 13px;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-secondary:hover { border-color: var(--accent); color: var(--text); }
+
+/* TABLE */
+.table-wrap {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+}
+.table-header {
+  padding: 14px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.table-title { font-size: 13px; font-weight: 600; }
+.table-count { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  padding: 10px 16px; text-align: left; font-size: 10px; font-weight: 600;
+  color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--border); background: var(--surface2);
+  white-space: nowrap;
+}
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s; cursor: pointer;
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+td { padding: 12px 16px; font-size: 13px; vertical-align: middle; }
+.td-inc { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+.td-title { font-weight: 500; color: var(--text); max-width: 240px; }
+.td-title-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* BADGES */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 500;
+  white-space: nowrap;
+}
+.badge-high { background: var(--high-bg); color: var(--high); border: 1px solid rgba(239,68,68,0.2); }
+.badge-medium { background: var(--medium-bg); color: var(--medium); border: 1px solid rgba(245,158,11,0.2); }
+.badge-analysis { background: rgba(99,102,241,0.1); color: var(--status-analysis); border: 1px solid rgba(99,102,241,0.2); }
+.badge-validation { background: rgba(245,158,11,0.1); color: var(--status-validation); border: 1px solid rgba(245,158,11,0.2); }
+.badge-resolved { background: rgba(16,185,129,0.1); color: var(--status-resolved); border: 1px solid rgba(16,185,129,0.2); }
+.badge-closed { background: rgba(107,114,128,0.1); color: var(--status-closed); border: 1px solid rgba(107,114,128,0.2); }
+
+/* SLA INDICATOR */
+.sla-indicator {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-family: var(--mono); font-weight: 500;
+  padding: 2px 6px; border-radius: 4px;
+}
+.sla-ok { background: rgba(16,185,129,0.1); color: var(--status-resolved); }
+.sla-warn { background: rgba(245,158,11,0.1); color: var(--sla-warn); }
+.sla-breach { background: rgba(239,68,68,0.1); color: var(--sla-breach); }
+
+/* AVATAR */
+.avatar {
+  width: 26px; height: 26px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; flex-shrink: 0;
+}
+.person-cell { display: flex; align-items: center; gap: 8px; }
+.person-name { font-size: 12px; }
+
+/* LOG UPDATES */
+.log-preview { font-size: 11px; color: var(--text2); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.log-time { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+
+/* ACTIONS */
+.action-btns { display: flex; gap: 6px; }
+.action-btn {
+  background: transparent; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 5px 10px; font-size: 11px;
+  cursor: pointer; transition: all 0.15s; font-family: var(--font);
+}
+.action-edit { color: var(--accent); }
+.action-edit:hover { background: rgba(59,130,246,0.1); border-color: var(--accent); }
+.action-delete { color: var(--high); }
+.action-delete:hover { background: rgba(239,68,68,0.1); border-color: var(--high); }
+
+/* EMPTY STATE */
+.empty-state {
+  padding: 64px 24px; text-align: center;
+}
+.empty-icon { font-size: 40px; margin-bottom: 16px; opacity: 0.3; }
+.empty-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+.empty-sub { font-size: 13px; color: var(--text3); }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: none; align-items: center; justify-content: center; z-index: 500;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 14px; width: 640px; max-width: 95vw; max-height: 90vh;
+  overflow-y: auto; box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+}
+.modal-header {
+  padding: 20px 24px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0;
+  background: var(--surface); z-index: 1;
+}
+.modal-title { font-size: 15px; font-weight: 700; }
+.modal-close {
+  background: transparent; border: none; color: var(--text3); font-size: 20px;
+  cursor: pointer; padding: 4px 8px; border-radius: 4px; line-height: 1;
+}
+.modal-close:hover { color: var(--text); background: var(--surface2); }
+.modal-body { padding: 24px; }
+.modal-footer {
+  padding: 16px 24px; border-top: 1px solid var(--border);
+  display: flex; justify-content: flex-end; gap: 10px;
+  position: sticky; bottom: 0; background: var(--surface);
+}
+
+/* FORM */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-full { grid-column: 1 / -1; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-label { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; }
+.form-input, .form-select, .form-textarea {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 12px;
+  color: var(--text); font-family: var(--font); font-size: 13px;
+  transition: border-color 0.2s;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none; border-color: var(--accent);
+}
+.form-textarea { resize: vertical; min-height: 80px; }
+.form-section { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+.form-section-title { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; }
+
+/* LOG ENTRIES */
+.log-entries { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.log-entry {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 12px;
+}
+.log-entry-meta { font-size: 10px; color: var(--text3); font-family: var(--mono); margin-bottom: 4px; }
+.log-entry-text { font-size: 12px; color: var(--text2); }
+.log-add-row { display: flex; gap: 8px; }
+.log-add-input {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 8px 12px;
+  color: var(--text); font-family: var(--font); font-size: 13px;
+}
+.log-add-input:focus { outline: none; border-color: var(--accent); }
+.log-add-btn {
+  background: var(--surface3); border: 1px solid var(--border2);
+  border-radius: var(--radius-sm); padding: 8px 14px; color: var(--text2);
+  font-size: 12px; cursor: pointer; white-space: nowrap; font-family: var(--font);
+  transition: all 0.2s;
+}
+.log-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* DETAIL MODAL */
+.detail-section { margin-bottom: 20px; }
+.detail-label { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.detail-value { font-size: 13px; color: var(--text); }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+
+/* PROCESS TIMELINE */
+.process-timeline { display: flex; align-items: center; gap: 0; margin-bottom: 24px; overflow-x: auto; padding-bottom: 4px; }
+.pt-step {
+  display: flex; align-items: center; flex-shrink: 0;
+}
+.pt-node {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.pt-circle {
+  width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border2);
+  display: flex; align-items: center; justify-content: center; font-size: 12px;
+  font-weight: 700; font-family: var(--mono); color: var(--text3);
+  transition: all 0.3s;
+}
+.pt-circle.active { border-color: var(--accent); background: rgba(59,130,246,0.15); color: var(--accent); }
+.pt-circle.done { border-color: var(--status-resolved); background: rgba(16,185,129,0.15); color: var(--status-resolved); }
+.pt-label { font-size: 9px; color: var(--text3); text-align: center; max-width: 70px; line-height: 1.3; }
+.pt-line { width: 40px; height: 2px; background: var(--border2); flex-shrink: 0; }
+.pt-line.done { background: var(--status-resolved); }
+
+/* SAVING INDICATOR */
+.saving-indicator {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 10px 16px; font-size: 12px; color: var(--text2);
+  display: none; align-items: center; gap: 8px; z-index: 999;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.saving-indicator.show { display: flex; }
+.saving-spin {
+  width: 14px; height: 14px; border: 2px solid var(--border2);
+  border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 12px 20px; font-size: 13px;
+  display: none; align-items: center; gap: 10px; z-index: 1001;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.toast.show { display: flex; }
+.toast-success { border-left: 3px solid var(--status-resolved); }
+.toast-error { border-left: 3px solid var(--high); }
+
+/* RESPONSIVE */
+@media (max-width: 1200px) {
+  .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+  .charts-row { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 768px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .charts-row { grid-template-columns: 1fr; }
+  .topbar-subtitle, .topbar-badge { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">🌉</div>
+      <div>
+        <div class="login-logo-text">Ops Bridge</div>
+        <div class="login-logo-sub">Production Incident Command</div>
+      </div>
+    </div>
+    <div class="login-title">Admin Access</div>
+    <div class="login-sub">Enter your admin password to manage incidents</div>
+    <input type="password" class="login-input" id="admin-pass" placeholder="Admin password" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <button class="login-btn" onclick="doLogin()">Sign In as Admin</button>
+    <div class="login-error" id="login-error">Incorrect password. Try again.</div>
+    <button class="login-view-btn" onclick="enterViewMode()">👁 View Dashboard (Read-only)</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">
+        <div class="topbar-icon">🌉</div>
+        <div>
+          <div class="topbar-title">Ops Bridge</div>
+          <div class="topbar-subtitle">Production Incident Command Center</div>
+        </div>
+      </div>
+      <div class="topbar-divider"></div>
+      <div class="topbar-badge" id="topbar-env">PRODUCTION</div>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-refresh">
+        <div class="refresh-dot"></div>
+        <span id="last-refresh">Refreshing...</span>
+      </div>
+      <span id="admin-badge" class="admin-badge" style="display:none">Admin</span>
+      <button class="logout-btn" onclick="logout()" id="logout-btn" style="display:none">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- PROCESS TIMELINE -->
+    <div class="process-timeline" id="process-timeline">
+      <div class="pt-step">
+        <div class="pt-node">
+          <div class="pt-circle" id="pt1">1</div>
+          <div class="pt-label">Incident Reported</div>
+        </div>
+        <div class="pt-line"></div>
+      </div>
+      <div class="pt-step">
+        <div class="pt-node">
+          <div class="pt-circle" id="pt2">2</div>
+          <div class="pt-label">PO + Tech Engaged</div>
+        </div>
+        <div class="pt-line"></div>
+      </div>
+      <div class="pt-step">
+        <div class="pt-node">
+          <div class="pt-circle" id="pt3">3</div>
+          <div class="pt-label">24hr Placeholder Call</div>
+        </div>
+        <div class="pt-line"></div>
+      </div>
+      <div class="pt-step">
+        <div class="pt-node">
+          <div class="pt-circle" id="pt4">4</div>
+          <div class="pt-label">RCA Analysis</div>
+        </div>
+        <div class="pt-line"></div>
+      </div>
+      <div class="pt-step">
+        <div class="pt-node">
+          <div class="pt-circle" id="pt5">5</div>
+          <div class="pt-label">48hr Follow-up</div>
+        </div>
+        <div class="pt-line"></div>
+      </div>
+      <div class="pt-step">
+        <div class="pt-node">
+          <div class="pt-circle" id="pt6">6</div>
+          <div class="pt-label">Root Cause Routing</div>
+        </div>
+        <div class="pt-line"></div>
+      </div>
+      <div class="pt-step">
+        <div class="pt-node">
+          <div class="pt-circle" id="pt7">7</div>
+          <div class="pt-label">Release / Deploy</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI CARDS -->
+    <div class="kpi-grid">
+      <div class="kpi total">
+        <div class="kpi-label">Total Issues</div>
+        <div class="kpi-value" id="kpi-total">0</div>
+        <div class="kpi-sub">All active incidents</div>
+      </div>
+      <div class="kpi analysis">
+        <div class="kpi-label">Analysis in Progress</div>
+        <div class="kpi-value" id="kpi-analysis">0</div>
+        <div class="kpi-sub">Under investigation</div>
+      </div>
+      <div class="kpi validation">
+        <div class="kpi-label">Validation in Progress</div>
+        <div class="kpi-value" id="kpi-validation">0</div>
+        <div class="kpi-sub">Awaiting validation</div>
+      </div>
+      <div class="kpi resolved">
+        <div class="kpi-label">Resolved</div>
+        <div class="kpi-value" id="kpi-resolved">0</div>
+        <div class="kpi-sub">Fix deployed</div>
+      </div>
+      <div class="kpi closed">
+        <div class="kpi-label">Closed</div>
+        <div class="kpi-value" id="kpi-closed">0</div>
+        <div class="kpi-sub">Verified & closed</div>
+      </div>
+      <div class="kpi sla">
+        <div class="kpi-label">SLA Breaches</div>
+        <div class="kpi-value" id="kpi-sla">0</div>
+        <div class="kpi-sub">Needs immediate action</div>
+      </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">Status Distribution</div>
+        <div class="chart-wrap"><canvas id="chart-status"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Criticality Breakdown</div>
+        <div class="chart-wrap"><canvas id="chart-criticality"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Issues Over Time (Last 14 Days)</div>
+        <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
+      </div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" id="search-input" placeholder="Search incidents..." oninput="renderTable()"/>
+        </div>
+        <select class="filter-select" id="filter-status" onchange="renderTable()">
+          <option value="">All Statuses</option>
+          <option value="Analysis in Progress">Analysis in Progress</option>
+          <option value="Validation in Progress">Validation in Progress</option>
+          <option value="Resolved">Resolved</option>
+          <option value="Closed">Closed</option>
+        </select>
+        <select class="filter-select" id="filter-criticality" onchange="renderTable()">
+          <option value="">All Criticality</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+        </select>
+        <select class="filter-select" id="filter-type" onchange="renderTable()">
+          <option value="">All Types</option>
+          <option value="Bug / Code Issue">Bug / Code</option>
+          <option value="Requirement Issue">Requirement</option>
+        </select>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn-secondary" onclick="exportData()">⬇ Export</button>
+        <button class="btn-primary" id="add-btn" onclick="openAddModal()" style="display:none">+ Add Incident</button>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <div class="table-title">Production Incidents</div>
+        <div class="table-count" id="table-count">0 incidents</div>
+      </div>
+      <div id="table-container"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">New Production Incident</div>
+      <button class="modal-close" onclick="closeModal('add-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Incident Number</label>
+          <input type="text" class="form-input" id="f-inc" placeholder="Auto-generated" readonly style="opacity:0.6"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date Reported</label>
+          <input type="datetime-local" class="form-input" id="f-date"/>
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Issue Title</label>
+          <input type="text" class="form-input" id="f-title" placeholder="Brief description of the production issue"/>
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Problem Statement</label>
+          <textarea class="form-textarea" id="f-desc" placeholder="Detailed description, impact, affected systems..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Criticality</label>
+          <select class="form-select" id="f-criticality">
+            <option value="High">🔴 High</option>
+            <option value="Medium">🟡 Medium</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="f-status">
+            <option value="Analysis in Progress">Analysis in Progress</option>
+            <option value="Validation in Progress">Validation in Progress</option>
+            <option value="Resolved">Resolved</option>
+            <option value="Closed">Closed</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Root Cause Type</label>
+          <select class="form-select" id="f-type">
+            <option value="">Not yet determined</option>
+            <option value="Bug / Code Issue">Bug / Code Issue → Jira Defect</option>
+            <option value="Requirement Issue">Requirement Issue → Intake</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Release Quarter</label>
+          <input type="text" class="form-input" id="f-release" placeholder="e.g. Q3 2025"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Assignee (Tech)</label>
+          <input type="text" class="form-input" id="f-assignee" placeholder="Full name"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reporter (PO/Risk)</label>
+          <input type="text" class="form-input" id="f-reporter" placeholder="Full name"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">SRE Incident #</label>
+          <input type="text" class="form-input" id="f-sre" placeholder="SRE ticket reference"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Jira / Intake Ref</label>
+          <input type="text" class="form-input" id="f-jira" placeholder="DEF-XXXX or INT-XXXX"/>
+        </div>
+      </div>
+
+      <!-- LOG UPDATES -->
+      <div class="form-section">
+        <div class="form-section-title">Log Updates</div>
+        <div class="log-entries" id="modal-log-entries"></div>
+        <div class="log-add-row">
+          <input type="text" class="log-add-input" id="new-log-text" placeholder="Add a log update..." onkeydown="if(event.key==='Enter')addLogEntry()"/>
+          <button class="log-add-btn" onclick="addLogEntry()">+ Add</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('add-modal')">Cancel</button>
+      <button class="btn-primary" onclick="saveIssue()">Save Incident</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="detail-inc">INC-2024-0001</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px" id="detail-date"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('detail-modal')">×</button>
+    </div>
+    <div class="modal-body" id="detail-body"></div>
+  </div>
+</div>
+
+<!-- SAVING -->
+<div class="saving-indicator" id="saving-indicator">
+  <div class="saving-spin"></div>
+  <span id="saving-text">Saving to GitHub...</span>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// CONFIG — injected by GitHub Actions
+const ADMIN_PASSWORD = '__ADMIN_PASSWORD__';
+const GH_TOKEN = '__GH_TOKEN__';
+const REPO_OWNER = 'vijay5412';
+const REPO_NAME = 'ops-control-tower';
+const DATA_FILE = 'data/issues.json';
+
+// STATE
+let issues = [];
+let isAdmin = false;
+let editingId = null;
+let modalLogs = [];
+let charts = {};
+let refreshInterval = null;
+let currentFileSHA = null;
+
+// COLORS
+const AVATAR_COLORS = ['#3b82f6','#8b5cf6','#ec4899','#10b981','#f59e0b','#ef4444','#06b6d4','#84cc16'];
+function avatarColor(name) {
+  let h = 0; for (let c of (name||'?')) h = (h*31 + c.charCodeAt(0)) & 0xffff;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+function initials(name) {
+  return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+}
+
+// LOGIN
+function doLogin() {
+  const pass = document.getElementById('admin-pass').value;
+  if (pass === ADMIN_PASSWORD) {
+    isAdmin = true;
+    showApp();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+  }
+}
+function enterViewMode() {
+  isAdmin = false;
+  showApp();
+}
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+  if (isAdmin) {
+    document.getElementById('admin-badge').style.display = 'inline-flex';
+    document.getElementById('logout-btn').style.display = 'inline-block';
+    document.getElementById('add-btn').style.display = 'flex';
+  }
+  loadData();
+  startRefresh();
+}
+function logout() {
+  isAdmin = false;
+  location.reload();
+}
+
+// DATA — GitHub API
+async function loadData() {
+  try {
+    const headers = { 'Accept': 'application/vnd.github.v3+json' };
+    if (isAdmin && GH_TOKEN !== '__GH_TOKEN__') headers['Authorization'] = `token ${GH_TOKEN}`;
+    const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATA_FILE}`, { headers });
+    if (res.ok) {
+      const json = await res.json();
+      currentFileSHA = json.sha;
+      issues = JSON.parse(atob(json.content.replace(/\n/g,'')));
+    }
+  } catch(e) {
+    // Use local state if API fails
+  }
+  render();
+  updateRefreshTime();
+}
+
+async function saveData() {
+  showSaving(true);
+  try {
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(issues, null, 2))));
+    const body = {
+      message: `ops-bridge: update issues [${new Date().toISOString()}]`,
+      content,
+      sha: currentFileSHA
+    };
+    const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATA_FILE}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${GH_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    if (res.ok) {
+      const json = await res.json();
+      currentFileSHA = json.content.sha;
+      showToast('✓ Saved successfully', 'success');
+    } else {
+      showToast('⚠ Save failed — check token permissions', 'error');
+    }
+  } catch(e) {
+    showToast('⚠ Network error saving data', 'error');
+  }
+  showSaving(false);
+}
+
+function startRefresh() {
+  if (refreshInterval) clearInterval(refreshInterval);
+  refreshInterval = setInterval(loadData, 30000);
+}
+
+function updateRefreshTime() {
+  document.getElementById('last-refresh').textContent = 'Live · ' + new Date().toLocaleTimeString();
+}
+
+// RENDER
+function render() {
+  updateKPIs();
+  updateCharts();
+  renderTable();
+}
+
+function updateKPIs() {
+  const analysis = issues.filter(i=>i.status==='Analysis in Progress').length;
+  const validation = issues.filter(i=>i.status==='Validation in Progress').length;
+  const resolved = issues.filter(i=>i.status==='Resolved').length;
+  const closed = issues.filter(i=>i.status==='Closed').length;
+  const breaches = issues.filter(i=>getSLAStatus(i).level==='breach').length;
+
+  document.getElementById('kpi-total').textContent = issues.length;
+  document.getElementById('kpi-analysis').textContent = analysis;
+  document.getElementById('kpi-validation').textContent = validation;
+  document.getElementById('kpi-resolved').textContent = resolved;
+  document.getElementById('kpi-closed').textContent = closed;
+  document.getElementById('kpi-sla').textContent = breaches;
+}
+
+function updateCharts() {
+  const statusData = [
+    issues.filter(i=>i.status==='Analysis in Progress').length,
+    issues.filter(i=>i.status==='Validation in Progress').length,
+    issues.filter(i=>i.status==='Resolved').length,
+    issues.filter(i=>i.status==='Closed').length,
+  ];
+  const critData = [
+    issues.filter(i=>i.criticality==='High').length,
+    issues.filter(i=>i.criticality==='Medium').length,
+  ];
+
+  const chartDefaults = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: '#8892aa', font: { size: 11 } } } }
+  };
+
+  if (charts.status) charts.status.destroy();
+  charts.status = new Chart(document.getElementById('chart-status'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Analysis', 'Validation', 'Resolved', 'Closed'],
+      datasets: [{ data: statusData, backgroundColor: ['#6366f1','#f59e0b','#10b981','#6b7280'], borderWidth: 0 }]
+    },
+    options: { ...chartDefaults, cutout: '65%' }
+  });
+
+  if (charts.crit) charts.crit.destroy();
+  charts.crit = new Chart(document.getElementById('chart-criticality'), {
+    type: 'doughnut',
+    data: {
+      labels: ['High', 'Medium'],
+      datasets: [{ data: critData, backgroundColor: ['#ef4444','#f59e0b'], borderWidth: 0 }]
+    },
+    options: { ...chartDefaults, cutout: '65%' }
+  });
+
+  // Trend — last 14 days
+  const days = Array.from({length:14}, (_,i) => {
+    const d = new Date(); d.setDate(d.getDate() - (13 - i));
+    return d.toISOString().split('T')[0];
+  });
+  const trendData = days.map(d => issues.filter(i => i.dateReported && i.dateReported.startsWith(d)).length);
+
+  if (charts.trend) charts.trend.destroy();
+  charts.trend = new Chart(document.getElementById('chart-trend'), {
+    type: 'bar',
+    data: {
+      labels: days.map(d => d.slice(5)),
+      datasets: [{
+        data: trendData, backgroundColor: 'rgba(59,130,246,0.5)',
+        borderColor: '#3b82f6', borderWidth: 1, borderRadius: 4
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#5a6480', font: { size: 9 } }, grid: { color: '#232b3e' } },
+        y: { ticks: { color: '#5a6480', font: { size: 10 }, stepSize: 1 }, grid: { color: '#232b3e' } }
+      }
+    }
+  });
+}
+
+function filteredIssues() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const status = document.getElementById('filter-status').value;
+  const crit = document.getElementById('filter-criticality').value;
+  const type = document.getElementById('filter-type').value;
+  return issues.filter(i => {
+    if (status && i.status !== status) return false;
+    if (crit && i.criticality !== crit) return false;
+    if (type && i.rootCauseType !== type) return false;
+    if (q && !`${i.incidentNumber} ${i.title} ${i.assignee} ${i.reporter}`.toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function renderTable() {
+  const filtered = filteredIssues();
+  document.getElementById('table-count').textContent = `${filtered.length} incident${filtered.length!==1?'s':''}`;
+  const container = document.getElementById('table-container');
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <div class="empty-title">No incidents found</div>
+      <div class="empty-sub">${issues.length === 0 ? 'Add your first production incident to get started.' : 'Try adjusting your filters.'}</div>
+    </div>`;
+    return;
+  }
+
+  const adminCols = isAdmin ? '<th>Actions</th>' : '';
+  let html = `<table><thead><tr>
+    <th>Incident #</th><th>Issue / Date</th><th>Criticality</th><th>Status</th>
+    <th>SLA</th><th>Root Cause</th><th>Assignee</th><th>Reporter</th>
+    <th>Latest Update</th>${adminCols}
+  </tr></thead><tbody>`;
+
+  for (const issue of filtered) {
+    const sla = getSLAStatus(issue);
+    const lastLog = issue.logs && issue.logs.length ? issue.logs[issue.logs.length-1] : null;
+    const adminActions = isAdmin ? `<td><div class="action-btns">
+      <button class="action-btn action-edit" onclick="event.stopPropagation();openEditModal('${issue.id}')">Edit</button>
+      <button class="action-btn action-delete" onclick="event.stopPropagation();deleteIssue('${issue.id}')">Delete</button>
+    </div></td>` : '';
+
+    html += `<tr onclick="openDetail('${issue.id}')">
+      <td><span class="td-inc">${issue.incidentNumber}</span></td>
+      <td>
+        <div class="td-title">${issue.title}</div>
+        <div class="td-title-sub">${formatDate(issue.dateReported)}</div>
+      </td>
+      <td>${critBadge(issue.criticality)}</td>
+      <td>${statusBadge(issue.status)}</td>
+      <td><span class="sla-indicator sla-${sla.level}" title="${sla.tooltip}">${sla.label}</span></td>
+      <td><span style="font-size:11px;color:var(--text3)">${issue.rootCauseType || '—'}</span></td>
+      <td>${personCell(issue.assignee)}</td>
+      <td>${personCell(issue.reporter)}</td>
+      <td>
+        ${lastLog ? `<div class="log-preview">${lastLog.text}</div><div class="log-time">${formatDate(lastLog.time)}</div>` : '<span style="color:var(--text3);font-size:11px">No updates</span>'}
+      </td>
+      ${adminActions}
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function critBadge(c) {
+  if (c === 'High') return '<span class="badge badge-high">● High</span>';
+  if (c === 'Medium') return '<span class="badge badge-medium">● Medium</span>';
+  return `<span class="badge">${c||'—'}</span>`;
+}
+
+function statusBadge(s) {
+  const map = {
+    'Analysis in Progress': 'analysis',
+    'Validation in Progress': 'validation',
+    'Resolved': 'resolved',
+    'Closed': 'closed'
+  };
+  const cls = map[s] || '';
+  return `<span class="badge badge-${cls}">${s||'—'}</span>`;
+}
+
+function personCell(name) {
+  if (!name) return '<span style="color:var(--text3);font-size:11px">—</span>';
+  const bg = avatarColor(name);
+  return `<div class="person-cell">
+    <div class="avatar" style="background:${bg}">${initials(name)}</div>
+    <span class="person-name">${name}</span>
+  </div>`;
+}
+
+function getSLAStatus(issue) {
+  if (!issue.dateReported || ['Resolved','Closed'].includes(issue.status)) {
+    return { level: 'ok', label: '✓ OK', tooltip: 'Within SLA' };
+  }
+  const hours = (Date.now() - new Date(issue.dateReported).getTime()) / 3600000;
+  if (hours > 48) return { level: 'breach', label: `⚠ ${Math.floor(hours)}h`, tooltip: '48hr SLA breached — immediate action required' };
+  if (hours > 24) return { level: 'warn', label: `⚡ ${Math.floor(hours)}h`, tooltip: '24hr SLA passed — follow-up RCA call due' };
+  return { level: 'ok', label: `${Math.floor(hours)}h`, tooltip: 'Within 24hr SLA window' };
+}
+
+function formatDate(dt) {
+  if (!dt) return '—';
+  return new Date(dt).toLocaleString('en-AU', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+// DETAIL MODAL
+function openDetail(id) {
+  const issue = issues.find(i=>i.id===id);
+  if (!issue) return;
+  document.getElementById('detail-inc').textContent = issue.incidentNumber;
+  document.getElementById('detail-date').textContent = `Reported: ${formatDate(issue.dateReported)}`;
+  const sla = getSLAStatus(issue);
+  document.getElementById('detail-body').innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-section"><div class="detail-label">Title</div><div class="detail-value" style="font-weight:600">${issue.title}</div></div>
+      <div class="detail-section"><div class="detail-label">Criticality</div><div class="detail-value">${critBadge(issue.criticality)}</div></div>
+      <div class="detail-section"><div class="detail-label">Status</div><div class="detail-value">${statusBadge(issue.status)}</div></div>
+      <div class="detail-section"><div class="detail-label">SLA</div><div class="detail-value"><span class="sla-indicator sla-${sla.level}">${sla.label}</span></div></div>
+      <div class="detail-section"><div class="detail-label">Root Cause Type</div><div class="detail-value">${issue.rootCauseType||'Not yet determined'}</div></div>
+      <div class="detail-section"><div class="detail-label">Release Quarter</div><div class="detail-value">${issue.releaseQuarter||'—'}</div></div>
+      <div class="detail-section"><div class="detail-label">Assignee</div><div class="detail-value">${personCell(issue.assignee)}</div></div>
+      <div class="detail-section"><div class="detail-label">Reporter</div><div class="detail-value">${personCell(issue.reporter)}</div></div>
+      <div class="detail-section"><div class="detail-label">SRE Incident</div><div class="detail-value">${issue.sreIncident||'—'}</div></div>
+      <div class="detail-section"><div class="detail-label">Jira / Intake</div><div class="detail-value">${issue.jiraRef||'—'}</div></div>
+    </div>
+    ${issue.description ? `<div class="detail-section"><div class="detail-label">Problem Statement</div><div class="detail-value" style="line-height:1.6;color:var(--text2)">${issue.description}</div></div>` : ''}
+    <div class="form-section-title" style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px">Activity Log</div>
+    ${(issue.logs||[]).length === 0 ? '<div style="color:var(--text3);font-size:13px">No log entries yet.</div>' :
+      (issue.logs||[]).slice().reverse().map(l=>`
+        <div class="log-entry">
+          <div class="log-entry-meta">${formatDate(l.time)}</div>
+          <div class="log-entry-text">${l.text}</div>
+        </div>`).join('')}
+  `;
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+// ADD/EDIT MODAL
+function openAddModal() {
+  editingId = null;
+  modalLogs = [];
+  document.getElementById('modal-title').textContent = 'New Production Incident';
+  document.getElementById('f-inc').value = generateINC();
+  document.getElementById('f-date').value = new Date().toISOString().slice(0,16);
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-desc').value = '';
+  document.getElementById('f-criticality').value = 'High';
+  document.getElementById('f-status').value = 'Analysis in Progress';
+  document.getElementById('f-type').value = '';
+  document.getElementById('f-release').value = '';
+  document.getElementById('f-assignee').value = '';
+  document.getElementById('f-reporter').value = '';
+  document.getElementById('f-sre').value = '';
+  document.getElementById('f-jira').value = '';
+  renderModalLogs();
+  document.getElementById('add-modal').classList.add('open');
+}
+
+function openEditModal(id) {
+  const issue = issues.find(i=>i.id===id);
+  if (!issue) return;
+  editingId = id;
+  modalLogs = [...(issue.logs||[])];
+  document.getElementById('modal-title').textContent = `Edit — ${issue.incidentNumber}`;
+  document.getElementById('f-inc').value = issue.incidentNumber;
+  document.getElementById('f-date').value = issue.dateReported ? issue.dateReported.slice(0,16) : '';
+  document.getElementById('f-title').value = issue.title;
+  document.getElementById('f-desc').value = issue.description||'';
+  document.getElementById('f-criticality').value = issue.criticality||'High';
+  document.getElementById('f-status').value = issue.status;
+  document.getElementById('f-type').value = issue.rootCauseType||'';
+  document.getElementById('f-release').value = issue.releaseQuarter||'';
+  document.getElementById('f-assignee').value = issue.assignee||'';
+  document.getElementById('f-reporter').value = issue.reporter||'';
+  document.getElementById('f-sre').value = issue.sreIncident||'';
+  document.getElementById('f-jira').value = issue.jiraRef||'';
+  renderModalLogs();
+  document.getElementById('add-modal').classList.add('open');
+}
+
+function renderModalLogs() {
+  const el = document.getElementById('modal-log-entries');
+  if (modalLogs.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = modalLogs.slice().reverse().map(l=>`
+    <div class="log-entry">
+      <div class="log-entry-meta">${formatDate(l.time)}</div>
+      <div class="log-entry-text">${l.text}</div>
+    </div>`).join('');
+}
+
+function addLogEntry() {
+  const txt = document.getElementById('new-log-text').value.trim();
+  if (!txt) return;
+  modalLogs.push({ text: txt, time: new Date().toISOString() });
+  document.getElementById('new-log-text').value = '';
+  renderModalLogs();
+}
+
+function saveIssue() {
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) { showToast('⚠ Issue title is required', 'error'); return; }
+
+  const data = {
+    id: editingId || generateId(),
+    incidentNumber: document.getElementById('f-inc').value,
+    dateReported: document.getElementById('f-date').value,
+    title,
+    description: document.getElementById('f-desc').value,
+    criticality: document.getElementById('f-criticality').value,
+    status: document.getElementById('f-status').value,
+    rootCauseType: document.getElementById('f-type').value,
+    releaseQuarter: document.getElementById('f-release').value,
+    assignee: document.getElementById('f-assignee').value,
+    reporter: document.getElementById('f-reporter').value,
+    sreIncident: document.getElementById('f-sre').value,
+    jiraRef: document.getElementById('f-jira').value,
+    logs: modalLogs,
+    updatedAt: new Date().toISOString()
+  };
+
+  if (editingId) {
+    const idx = issues.findIndex(i=>i.id===editingId);
+    if (idx > -1) issues[idx] = data;
+  } else {
+    data.createdAt = new Date().toISOString();
+    issues.unshift(data);
+  }
+
+  closeModal('add-modal');
+  render();
+  saveData();
+}
+
+function deleteIssue(id) {
+  if (!confirm('Delete this incident? This cannot be undone.')) return;
+  issues = issues.filter(i=>i.id!==id);
+  render();
+  saveData();
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// UTILS
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+}
+function generateINC() {
+  const year = new Date().getFullYear();
+  const num = String(issues.length + 1).padStart(4,'0');
+  return `INC-${year}-${num}`;
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(issues, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `ops-bridge-export-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+function showSaving(show) {
+  document.getElementById('saving-indicator').classList.toggle('show', show);
+}
+
+function showToast(msg, type='success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast show toast-${type}`;
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// KEYBOARD
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+  }
+});
+</script>
+</body>
+</html>
