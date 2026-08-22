@@ -1,165 +1,771 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DataWeave Transformation Guides | DWForge</title>
-  <meta name="description" content="Practical DataWeave transformation guides for MuleSoft teams. Real source to target mappings with working code you can paste straight into Anypoint Studio.">
-  <link rel="canonical" href="https://dwforge.dev/articles/">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Calibri:wght@400;600;700&display=swap');
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --blue: #1a5fa8; --blue-light: #e8f1fb; --blue-dark: #0d3d72;
-      --text: #1a1a1a; --text-muted: #5a6475; --border: #e2e6ec;
-      --bg: #ffffff; --bg-secondary: #f7f9fc; --radius: 8px;
-      --green: #15803d; --green-light: #f0fdf4;
-      --font: 'Calibri', 'Segoe UI', Arial, sans-serif;
-    }
-    body { font-family: var(--font); color: var(--text); background: var(--bg); line-height: 1.65; font-size: 16px; }
-    a { color: inherit; text-decoration: none; }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Ops Bridge — Production Incident Command</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f6fa;
+  --surface:#ffffff;
+  --surface2:#f8f9fc;
+  --border:#e4e8ef;
+  --border2:#d1d9e6;
+  --text:#0f172a;
+  --text2:#475569;
+  --text3:#94a3b8;
+  --navy:#0f2d5c;
+  --navy2:#0a2147;
+  --accent:#1a56db;
+  --accent-light:#eff5ff;
+  --high:#e02424;
+  --high-light:#fdf2f2;
+  --medium:#c27803;
+  --medium-light:#fdf6e3;
+  --green:#057a55;
+  --green-light:#ecfdf5;
+  --purple:#6c2bd9;
+  --purple-light:#f5f3ff;
+  --gray:#4b5563;
+  --gray-light:#f9fafb;
+  --radius:8px;
+  --radius-sm:6px;
+  --shadow:0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.08),0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg:0 10px 32px rgba(0,0,0,0.1),0 4px 8px rgba(0,0,0,0.06);
+  --font:'Inter',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 
-    /* Nav */
-    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); background: #fff; position: sticky; top: 0; z-index: 100; }
-    .logo { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
-    .logo-mark { width: 34px; height: 34px; background: var(--blue); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 700; letter-spacing: 0; }
-    .logo-dw { color: var(--blue); }
-    .nav-links { display: flex; align-items: center; gap: 2rem; font-size: 15px; color: var(--text-muted); }
-    .nav-links a:hover { color: var(--text); }
-    .nav-links a.current { color: var(--text); font-weight: 600; }
-    .nav-cta { background: var(--blue); color: #fff !important; padding: 8px 20px; border-radius: var(--radius); font-weight: 600; font-size: 14px; }
-    .nav-cta:hover { background: var(--blue-dark); }
+/* LOGIN */
+#login-screen{
+  position:fixed;inset:0;
+  background:linear-gradient(135deg,#0f2d5c 0%,#1a4080 50%,#0f2d5c 100%);
+  display:flex;align-items:center;justify-content:center;z-index:1000;
+}
+.login-box{
+  background:#fff;border-radius:16px;padding:48px 44px;width:400px;
+  box-shadow:0 24px 64px rgba(0,0,0,0.3);
+}
+.login-brand{display:flex;align-items:center;gap:14px;margin-bottom:36px}
+.login-icon{
+  width:48px;height:48px;background:var(--navy);border-radius:12px;
+  display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;
+}
+.login-brand-name{font-size:22px;font-weight:800;color:var(--navy);letter-spacing:-0.5px}
+.login-brand-sub{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-top:2px}
+.login-divider{height:1px;background:var(--border);margin-bottom:28px}
+.login-label{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;display:block}
+.login-input{
+  width:100%;border:1.5px solid var(--border);border-radius:var(--radius);
+  padding:11px 14px;font-family:var(--mono);font-size:14px;color:var(--text);
+  transition:border-color 0.2s,box-shadow 0.2s;margin-bottom:14px;
+  background:#fff;
+}
+.login-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,86,219,0.12)}
+.login-btn{
+  width:100%;background:var(--navy);border:none;border-radius:var(--radius);
+  padding:12px;color:#fff;font-family:var(--font);font-size:14px;font-weight:600;
+  cursor:pointer;transition:background 0.2s;letter-spacing:0.01em;
+}
+.login-btn:hover{background:var(--navy2)}
+.login-error{color:var(--high);font-size:12px;margin-top:8px;display:none;font-weight:500}
+.login-view-btn{
+  width:100%;background:transparent;border:1.5px solid var(--border2);
+  border-radius:var(--radius);padding:11px;color:var(--text2);font-family:var(--font);
+  font-size:13px;cursor:pointer;margin-top:10px;transition:all 0.2s;font-weight:500;
+}
+.login-view-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
 
-    /* Page header */
-    .page-header { max-width: 820px; margin: 0 auto; padding: 4rem 2rem 2rem; }
-    .page-eyebrow { font-size: 13px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem; }
-    .page-header h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 1rem; }
-    .page-header p { font-size: 1.05rem; color: var(--text-muted); max-width: 560px; line-height: 1.75; }
+/* APP */
+#app{display:none;flex-direction:column;min-height:100vh}
+#app.visible{display:flex}
 
-    /* Guides list */
-    .guides-wrap { max-width: 820px; margin: 0 auto; padding: 2rem 2rem 4rem; }
-    .guide-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 1.75rem 2rem; margin-bottom: 1rem; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
-    .guide-card:hover { border-color: #c5cdd8; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-    .guide-tag { font-size: 11px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.6rem; }
-    .guide-card h2 { font-size: 18px; font-weight: 700; margin-bottom: 0.5rem; line-height: 1.3; }
-    .guide-card h2 a { color: var(--text); }
-    .guide-card h2 a:hover { color: var(--blue); }
-    .guide-card p { font-size: 14px; color: var(--text-muted); line-height: 1.65; margin-bottom: 0.75rem; }
-    .guide-meta { font-size: 13px; color: #8a93a0; display: flex; align-items: center; gap: 12px; }
-    .guide-meta-dot { width: 3px; height: 3px; background: #c5cdd8; border-radius: 50%; }
+/* TOPBAR */
+.topbar{
+  background:var(--navy);height:58px;padding:0 28px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:200;
+  box-shadow:0 2px 12px rgba(15,45,92,0.35);
+}
+.topbar-left{display:flex;align-items:center;gap:20px}
+.topbar-brand{display:flex;align-items:center;gap:12px}
+.topbar-icon{width:32px;height:32px;background:rgba(255,255,255,0.12);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.topbar-name{font-size:16px;font-weight:700;color:#fff;letter-spacing:-0.3px}
+.topbar-divider{width:1px;height:24px;background:rgba(255,255,255,0.12)}
+.topbar-env{
+  background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);
+  border-radius:4px;padding:3px 10px;font-size:11px;font-weight:600;
+  color:rgba(255,255,255,0.65);letter-spacing:0.08em;font-family:var(--mono);
+}
+.topbar-right{display:flex;align-items:center;gap:14px}
+.live-badge{display:flex;align-items:center;gap:7px;font-size:12px;color:rgba(255,255,255,0.55)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#34d399;box-shadow:0 0 0 2px rgba(52,211,153,0.25);animation:livepulse 2s infinite}
+@keyframes livepulse{0%,100%{opacity:1;box-shadow:0 0 0 2px rgba(52,211,153,0.25)}50%{opacity:0.7;box-shadow:0 0 0 4px rgba(52,211,153,0.12)}}
+.admin-pill{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:3px 12px;font-size:11px;font-weight:600;color:#fff;letter-spacing:0.04em}
+.topbar-logout{background:transparent;border:1px solid rgba(255,255,255,0.18);border-radius:var(--radius-sm);padding:5px 12px;color:rgba(255,255,255,0.65);font-size:12px;cursor:pointer;transition:all 0.2s;font-family:var(--font)}
+.topbar-logout:hover{border-color:rgba(239,68,68,0.6);color:#fca5a5}
 
-    /* Coming soon card */
-    .guide-card.soon { background: var(--bg-secondary); border-style: dashed; }
-    .guide-card.soon h2 { color: var(--text-muted); font-weight: 600; }
-    .soon-tag { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.6rem; }
+/* MAIN */
+.main{padding:24px 28px;max-width:1640px;margin:0 auto;width:100%}
 
-    /* CTA strip */
-    .cta-strip { background: var(--blue); color: #fff; padding: 4rem 2rem; text-align: center; }
-    .cta-strip h2 { font-size: clamp(1.4rem, 3vw, 1.9rem); font-weight: 700; margin-bottom: 0.6rem; letter-spacing: -0.01em; }
-    .cta-strip p { font-size: 1rem; opacity: 0.8; margin-bottom: 1.75rem; }
-    .btn-white { background: #fff; color: var(--blue); padding: 13px 28px; border-radius: var(--radius); font-size: 15px; font-weight: 700; display: inline-block; font-family: var(--font); }
-    .btn-white:hover { background: #f0f4f8; }
-    .cta-note { font-size: 13px; opacity: 0.65; margin-top: 0.75rem; }
+/* SECTION HEADER */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em}
 
-    /* Footer */
-    footer { padding: 2rem; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; font-size: 13px; color: var(--text-muted); }
-    .footer-links { display: flex; gap: 1.5rem; }
-    .footer-links a { color: var(--text-muted); }
-    .footer-links a:hover { color: var(--text); }
+/* PROCESS RAIL */
+.process-rail{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px 24px;margin-bottom:20px;box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:0;overflow-x:auto;
+}
+.pr-step{display:flex;align-items:center;flex-shrink:0}
+.pr-node{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:default}
+.pr-circle{
+  width:34px;height:34px;border-radius:50%;border:2px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;font-family:var(--mono);color:var(--text3);
+  background:var(--surface2);transition:all 0.3s;
+}
+.pr-circle.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent)}
+.pr-circle.done{border-color:var(--green);background:var(--green-light);color:var(--green)}
+.pr-label{font-size:10px;color:var(--text2);text-align:center;max-width:72px;line-height:1.3;font-weight:500}
+.pr-line{flex:1;min-width:32px;height:2px;background:var(--border);margin:0 4px;position:relative;top:-10px}
+.pr-line.done{background:var(--green)}
 
-    @media (max-width: 700px) {
-      nav { padding: 0.75rem 1rem; }
-      .nav-links { display: none; }
-      .page-header { padding: 3rem 1.25rem 1.5rem; }
-      .guides-wrap { padding: 1.5rem 1.25rem 3rem; }
-      footer { flex-direction: column; align-items: flex-start; }
-    }
-  </style>
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:20px}
+.kpi{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px 20px;box-shadow:var(--shadow);transition:box-shadow 0.2s,transform 0.15s;
+  position:relative;overflow:hidden;
+}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi.total::before{background:var(--navy)}
+.kpi.k-analysis::before{background:var(--purple)}
+.kpi.k-validation::before{background:var(--medium)}
+.kpi.k-resolved::before{background:var(--green)}
+.kpi.k-closed::before{background:var(--gray)}
+.kpi.k-sla::before{background:var(--high)}
+.kpi:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.kpi-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px}
+.kpi-value{font-size:32px;font-weight:800;font-family:'Inter',sans-serif;line-height:1;margin-bottom:5px;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.kpi.total .kpi-value{color:var(--navy)}
+.kpi.k-analysis .kpi-value{color:var(--purple)}
+.kpi.k-validation .kpi-value{color:var(--medium)}
+.kpi.k-resolved .kpi-value{color:var(--green)}
+.kpi.k-closed .kpi-value{color:var(--gray)}
+.kpi.k-sla .kpi-value{color:var(--high)}
+.kpi-sub{font-size:11px;color:var(--text3)}
+
+/* CHARTS */
+.charts-row{display:grid;grid-template-columns:1fr 1fr 2fr;gap:14px;margin-bottom:20px}
+.chart-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;box-shadow:var(--shadow);
+}
+.chart-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px}
+.chart-wrap{position:relative;height:156px}
+
+/* TOOLBAR */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.toolbar-left{display:flex;align-items:center;gap:8px;flex:1}
+.search-box{position:relative}
+.search-box input{
+  background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);
+  padding:8px 12px 8px 34px;color:var(--text);font-family:var(--font);font-size:13px;
+  width:230px;transition:border-color 0.2s,box-shadow 0.2s;
+}
+.search-box input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,86,219,0.1)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:15px;pointer-events:none}
+.filter-sel{
+  background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);
+  padding:8px 12px;color:var(--text2);font-family:var(--font);font-size:13px;cursor:pointer;
+  transition:border-color 0.2s;
+}
+.filter-sel:focus{outline:none;border-color:var(--accent)}
+.toolbar-right{display:flex;gap:8px}
+.btn-primary{
+  background:var(--navy);border:none;border-radius:var(--radius);
+  padding:8px 18px;color:#fff;font-family:var(--font);font-size:13px;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;gap:6px;transition:background 0.2s;letter-spacing:0.01em;
+}
+.btn-primary:hover{background:var(--navy2)}
+.btn-secondary{
+  background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);
+  padding:8px 14px;color:var(--text2);font-family:var(--font);font-size:13px;
+  cursor:pointer;font-weight:500;transition:all 0.2s;
+}
+.btn-secondary:hover{border-color:var(--border2);color:var(--text);background:var(--surface2)}
+
+/* TABLE */
+.table-wrap{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow);overflow:hidden;
+}
+.table-header{
+  padding:14px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;background:var(--surface);
+}
+.table-title{font-size:14px;font-weight:700;color:var(--text)}
+.table-count{font-size:12px;color:var(--text3);font-family:var(--mono)}
+table{width:100%;border-collapse:collapse}
+thead th{
+  padding:10px 16px;text-align:left;font-size:11px;font-weight:700;
+  color:var(--text2);text-transform:uppercase;letter-spacing:0.07em;
+  border-bottom:2px solid var(--border);background:#f8fafd;
+  white-space:nowrap;
+}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.12s;cursor:pointer}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#f5f8ff}
+td{padding:13px 16px;font-size:13px;vertical-align:middle}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.b-high{background:var(--high-light);color:var(--high);border:1px solid rgba(224,36,36,0.18)}
+.b-medium{background:var(--medium-light);color:var(--medium);border:1px solid rgba(194,120,3,0.18)}
+.b-analysis{background:var(--purple-light);color:var(--purple);border:1px solid rgba(108,43,217,0.18)}
+.b-validation{background:var(--medium-light);color:var(--medium);border:1px solid rgba(194,120,3,0.18)}
+.b-resolved{background:var(--green-light);color:var(--green);border:1px solid rgba(5,122,85,0.18)}
+.b-closed{background:var(--gray-light);color:var(--gray);border:1px solid rgba(75,85,99,0.18)}
+
+/* SLA */
+.sla{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-family:var(--mono);font-weight:600;padding:3px 8px;border-radius:4px}
+.sla-ok{background:#f0fdf4;color:#15803d}
+.sla-warn{background:#fffbeb;color:#b45309}
+.sla-breach{background:#fef2f2;color:#dc2626}
+
+/* PERSON */
+.avatar{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;color:#fff}
+.person-cell{display:flex;align-items:center;gap:8px}
+.person-name{font-size:12px;font-weight:500;color:var(--text2)}
+
+/* LOG */
+.log-preview{font-size:12px;color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.log-time{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:2px}
+
+/* ACTIONS */
+.action-row{display:flex;gap:6px}
+.act{background:transparent;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;font-size:11px;cursor:pointer;transition:all 0.15s;font-family:var(--font);font-weight:500}
+.act-edit{color:var(--accent)}
+.act-edit:hover{background:var(--accent-light);border-color:var(--accent)}
+.act-del{color:var(--high)}
+.act-del:hover{background:var(--high-light);border-color:var(--high)}
+
+/* INC */
+.inc-num{font-family:var(--mono);font-size:11px;color:var(--text3);font-weight:500}
+.issue-title{font-weight:600;color:var(--text);font-size:13px}
+.issue-date{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* EMPTY */
+.empty{padding:60px 24px;text-align:center}
+.empty-ico{font-size:36px;margin-bottom:12px;opacity:0.25}
+.empty-t{font-size:15px;font-weight:700;color:var(--text2);margin-bottom:4px}
+.empty-s{font-size:13px;color:var(--text3)}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,0.45);display:none;align-items:center;justify-content:center;z-index:500;backdrop-filter:blur(3px)}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:14px;width:660px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);border:1px solid var(--border)}
+.modal-head{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1}
+.modal-title{font-size:16px;font-weight:700;color:var(--text)}
+.modal-close{background:transparent;border:none;color:var(--text3);font-size:22px;cursor:pointer;padding:2px 6px;border-radius:4px;line-height:1}
+.modal-close:hover{background:var(--surface2);color:var(--text)}
+.modal-body{padding:24px}
+.modal-foot{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;position:sticky;bottom:0;background:#fff}
+
+/* FORM */
+.fg{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+.form-full{grid-column:1/-1}
+.fl{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em}
+.fi,.fs,.ft{
+  background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);
+  padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13px;
+  transition:border-color 0.2s,box-shadow 0.2s;width:100%;
+}
+.fi:focus,.fs:focus,.ft:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,86,219,0.1)}
+.ft{resize:vertical;min-height:80px}
+.form-section{margin-top:20px;padding-top:20px;border-top:1px solid var(--border)}
+.form-section-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px}
+
+/* LOGS */
+.log-entries{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.log-entry{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;border-left:3px solid var(--accent)}
+.log-meta{font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:3px}
+.log-txt{font-size:12px;color:var(--text2)}
+.log-add{display:flex;gap:8px}
+.log-add-input{flex:1;background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:9px 12px;color:var(--text);font-family:var(--font);font-size:13px}
+.log-add-input:focus{outline:none;border-color:var(--accent)}
+.log-add-btn{background:var(--accent-light);border:1.5px solid var(--accent);border-radius:var(--radius);padding:9px 14px;color:var(--accent);font-size:12px;cursor:pointer;white-space:nowrap;font-family:var(--font);font-weight:600}
+.log-add-btn:hover{background:var(--accent);color:#fff}
+
+/* DETAIL */
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.dl{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px}
+.dv{font-size:13px;color:var(--text);font-weight:500}
+
+/* SAVING */
+.saving{position:fixed;bottom:24px;right:24px;background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:10px 16px;font-size:12px;color:var(--text2);display:none;align-items:center;gap:8px;z-index:999;box-shadow:var(--shadow-md)}
+.saving.show{display:flex}
+.spin{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:12px 20px;font-size:13px;display:none;align-items:center;gap:10px;z-index:1001;box-shadow:var(--shadow-md);font-weight:500}
+.toast.show{display:flex}
+.toast.t-ok{border-left:4px solid var(--green);color:var(--green)}
+.toast.t-err{border-left:4px solid var(--high);color:var(--high)}
+
+@media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(3,1fr)}.charts-row{grid-template-columns:1fr 1fr}}
+@media(max-width:768px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.charts-row{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 
-<nav>
-  <div class="logo">
-    <a href="../index.html" style="display:flex;align-items:center;gap:10px;">
-      <div class="logo-mark">DW</div>
-      <span><span class="logo-dw">DW</span>Forge</span>
-    </a>
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-brand">
+      <div class="login-icon">🌉</div>
+      <div>
+        <div class="login-brand-name">Ops Bridge</div>
+        <div class="login-brand-sub">Production Incident Command</div>
+      </div>
+    </div>
+    <div class="login-divider"></div>
+    <label class="login-label">Admin Password</label>
+    <input type="password" class="login-input" id="admin-pass" placeholder="Enter admin password..." onkeydown="if(event.key==='Enter')doLogin()"/>
+    <label class="login-label" style="margin-top:4px">GitHub Actions Token</label>
+    <input type="password" class="login-input" id="admin-token" placeholder="Fine-grained PAT with actions:write scope..." onkeydown="if(event.key==='Enter')doLogin()"/>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:12px;margin-top:-8px">Token stays in browser memory only — never stored in code</div>
+    <button class="login-btn" onclick="doLogin()">Sign In as Admin</button>
+    <div class="login-error" id="login-error">⚠ Incorrect password. Please try again.</div>
+    <button class="login-view-btn" onclick="enterViewMode()">View Dashboard (Read-only)</button>
   </div>
-  <div class="nav-links">
-    <a href="../index.html#how-it-works">How it works</a>
-    <a href="../index.html#systems">Systems</a>
-    <a href="../index.html#enterprise">For teams</a>
-    <a href="../index.html#about">About</a>
-    <a href="../pricing.html">Pricing</a>
-    <a href="../tool.html" class="nav-cta">Use it free</a>
-  </div>
-</nav>
-
-<div class="page-header">
-  <div class="page-eyebrow">DataWeave guides</div>
-  <h1>Transformation guides for MuleSoft teams</h1>
-  <p>Real source to target mappings with working DataWeave code. No theory. Each guide covers the field mapping, null handling, date conversion, and edge cases that actually trip teams up in production.</p>
 </div>
 
-<div class="guides-wrap">
-
-  <div class="guide-card">
-    <div class="guide-tag">DataWeave guide</div>
-    <h2><a href="salesforce-to-sap-dataweave.html">Salesforce to SAP DataWeave Transformation: Complete Production Guide</a></h2>
-    <p>Real field mapping, null handling, date conversion, and working DataWeave code for Salesforce to SAP S/4HANA integration via MuleSoft. Covers the nested line item handling, currency formatting, and IDoc structure that catches most teams out.</p>
-    <div class="guide-meta">
-      <span>DataWeave 2.0</span>
-      <span class="guide-meta-dot"></span>
-      <span>MuleSoft</span>
-      <span class="guide-meta-dot"></span>
-      <span>Salesforce, SAP S/4HANA</span>
-      <span class="guide-meta-dot"></span>
-      <span>15 min read</span>
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-brand">
+        <div class="topbar-icon">🌉</div>
+        <div class="topbar-name">Ops Bridge</div>
+      </div>
+      <div class="topbar-divider"></div>
+      <div class="topbar-env">PRODUCTION</div>
+    </div>
+    <div class="topbar-right">
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        <span id="last-refresh">Connecting...</span>
+      </div>
+      <span id="admin-pill" class="admin-pill" style="display:none">● Admin</span>
+      <button class="topbar-logout" onclick="logout()" id="logout-btn" style="display:none">Sign Out</button>
     </div>
   </div>
 
-  <div class="guide-card">
-    <div class="guide-tag">DataWeave guide</div>
-    <h2><a href="workday-to-salesforce-dataweave.html">Workday to Salesforce DataWeave Transformation: Complete Production Guide</a></h2>
-    <p>Turning Workday worker and org data into clean Salesforce records. Covers the deep nesting, effective dating, reference resolution, and null handling that makes this mapping painful to write by hand.</p>
-    <div class="guide-meta">
-      <span>DataWeave 2.0</span>
-      <span class="guide-meta-dot"></span>
-      <span>MuleSoft</span>
-      <span class="guide-meta-dot"></span>
-      <span>Workday, Salesforce</span>
-      <span class="guide-meta-dot"></span>
-      <span>15 min read</span>
+  <div class="main">
+
+    <!-- PROCESS RAIL -->
+    <div class="process-rail" id="process-rail">
+      <div class="pr-step"><div class="pr-node"><div class="pr-circle" id="pt1">1</div><div class="pr-label">Incident Reported</div></div><div class="pr-line"></div></div>
+      <div class="pr-step"><div class="pr-node"><div class="pr-circle" id="pt2">2</div><div class="pr-label">PO + Tech Engaged</div></div><div class="pr-line"></div></div>
+      <div class="pr-step"><div class="pr-node"><div class="pr-circle" id="pt3">3</div><div class="pr-label">24hr Placeholder Call</div></div><div class="pr-line"></div></div>
+      <div class="pr-step"><div class="pr-node"><div class="pr-circle" id="pt4">4</div><div class="pr-label">RCA Analysis</div></div><div class="pr-line"></div></div>
+      <div class="pr-step"><div class="pr-node"><div class="pr-circle" id="pt5">5</div><div class="pr-label">48hr Follow-up</div></div><div class="pr-line"></div></div>
+      <div class="pr-step"><div class="pr-node"><div class="pr-circle" id="pt6">6</div><div class="pr-label">Root Cause Routing</div></div><div class="pr-line"></div></div>
+      <div class="pr-step"><div class="pr-node"><div class="pr-circle" id="pt7">7</div><div class="pr-label">Release / Deploy</div></div></div>
+    </div>
+
+    <!-- KPI -->
+    <div class="kpi-grid">
+      <div class="kpi total"><div class="kpi-label">Total Incidents</div><div class="kpi-value" id="kpi-total">0</div><div class="kpi-sub">All active</div></div>
+      <div class="kpi k-analysis"><div class="kpi-label">Analysis in Progress</div><div class="kpi-value" id="kpi-analysis">0</div><div class="kpi-sub">Under investigation</div></div>
+      <div class="kpi k-validation"><div class="kpi-label">Validation in Progress</div><div class="kpi-value" id="kpi-validation">0</div><div class="kpi-sub">Awaiting validation</div></div>
+      <div class="kpi k-resolved"><div class="kpi-label">Resolved</div><div class="kpi-value" id="kpi-resolved">0</div><div class="kpi-sub">Fix deployed</div></div>
+      <div class="kpi k-closed"><div class="kpi-label">Closed</div><div class="kpi-value" id="kpi-closed">0</div><div class="kpi-sub">Verified & closed</div></div>
+      <div class="kpi k-sla"><div class="kpi-label">SLA Breaches</div><div class="kpi-value" id="kpi-sla">0</div><div class="kpi-sub">Immediate action needed</div></div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="charts-row">
+      <div class="chart-card"><div class="chart-label">Status Distribution</div><div class="chart-wrap"><canvas id="chart-status"></canvas></div></div>
+      <div class="chart-card"><div class="chart-label">Criticality</div><div class="chart-wrap"><canvas id="chart-crit"></canvas></div></div>
+      <div class="chart-card"><div class="chart-label">Incidents — Last 14 Days</div><div class="chart-wrap"><canvas id="chart-trend"></canvas></div></div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Search incidents..." oninput="renderTable()"/>
+        </div>
+        <select class="filter-sel" id="filter-status" onchange="renderTable()">
+          <option value="">All Statuses</option>
+          <option>Analysis in Progress</option>
+          <option>Validation in Progress</option>
+          <option>Resolved</option>
+          <option>Closed</option>
+        </select>
+        <select class="filter-sel" id="filter-crit" onchange="renderTable()">
+          <option value="">All Criticality</option>
+          <option>High</option>
+          <option>Medium</option>
+        </select>
+        <select class="filter-sel" id="filter-type" onchange="renderTable()">
+          <option value="">All Types</option>
+          <option value="Bug / Code Issue">Bug / Code</option>
+          <option value="Requirement Issue">Requirement</option>
+        </select>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn-secondary" onclick="exportData()">⬇ Export</button>
+        <button class="btn-primary" id="add-btn" onclick="openAdd()" style="display:none">+ Add Incident</button>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <div class="table-title">Production Incidents</div>
+        <div class="table-count" id="table-count">0 incidents</div>
+      </div>
+      <div id="table-body"></div>
     </div>
   </div>
+</div>
 
-  <div class="guide-card soon">
-    <div class="soon-tag">Coming soon</div>
-    <h2>Next guide in progress</h2>
-    <p>The next transformation guide is being written now. Check back shortly.</p>
+<!-- ADD/EDIT MODAL -->
+<div class="overlay" id="modal-add">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="modal-title">New Production Incident</div>
+      <button class="modal-close" onclick="closeModal('modal-add')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg"><label class="fl">Incident #</label><input class="fi" id="f-inc" readonly style="opacity:.6;background:#f8f9fc"/></div>
+        <div class="fg"><label class="fl">Date Reported</label><input type="datetime-local" class="fi" id="f-date"/></div>
+        <div class="fg form-full"><label class="fl">Issue Title *</label><input class="fi" id="f-title" placeholder="Brief description of the production issue"/></div>
+        <div class="fg form-full"><label class="fl">Problem Statement</label><textarea class="ft" id="f-desc" placeholder="Impact, affected systems, steps to reproduce..."></textarea></div>
+        <div class="fg"><label class="fl">Criticality</label>
+          <select class="fs" id="f-crit"><option value="High">🔴 High</option><option value="Medium">🟡 Medium</option></select>
+        </div>
+        <div class="fg"><label class="fl">Status</label>
+          <select class="fs" id="f-status">
+            <option>Analysis in Progress</option>
+            <option>Validation in Progress</option>
+            <option>Resolved</option>
+            <option>Closed</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">Root Cause Type</label>
+          <select class="fs" id="f-type">
+            <option value="">Not yet determined</option>
+            <option value="Bug / Code Issue">Bug / Code Issue → Jira Defect</option>
+            <option value="Requirement Issue">Requirement Issue → Intake</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">Release Quarter</label><input class="fi" id="f-release" placeholder="e.g. Q3 2025"/></div>
+        <div class="fg"><label class="fl">Assignee (Tech)</label><input class="fi" id="f-assignee" placeholder="Full name"/></div>
+        <div class="fg"><label class="fl">Reporter (PO / Risk)</label><input class="fi" id="f-reporter" placeholder="Full name"/></div>
+        <div class="fg"><label class="fl">SRE Incident #</label><input class="fi" id="f-sre" placeholder="SRE ticket reference"/></div>
+        <div class="fg"><label class="fl">Jira / Intake Ref</label><input class="fi" id="f-jira" placeholder="DEF-XXXX or INT-XXXX"/></div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">Log Updates</div>
+        <div class="log-entries" id="modal-logs"></div>
+        <div class="log-add">
+          <input type="text" class="log-add-input" id="new-log" placeholder="Add a log entry..." onkeydown="if(event.key==='Enter')addLog()"/>
+          <button class="log-add-btn" onclick="addLog()">+ Add</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modal-add')">Cancel</button>
+      <button class="btn-primary" onclick="saveIssue()">Save Incident</button>
+    </div>
   </div>
-
 </div>
 
-<div class="cta-strip">
-  <h2>Skip the manual mapping</h2>
-  <p>Paste your source and target payload. DWForge writes the DataWeave for you.</p>
-  <a href="../tool.html" class="btn-white">Write my DataWeave</a>
-  <div class="cta-note">Free during beta. No signup. No credit card.</div>
-</div>
-
-<footer>
-  <span>© 2026 DWForge. Built by an integration architect.</span>
-  <div class="footer-links">
-    <a href="../tool.html">Tool</a>
-    <a href="../pricing.html">Pricing</a>
-    <a href="../index.html#about">About</a>
-    <a href="mailto:hello@dwforge.ai">Contact</a>
+<!-- DETAIL MODAL -->
+<div class="overlay" id="modal-detail">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="d-inc">—</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px" id="d-date"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-detail')">×</button>
+    </div>
+    <div class="modal-body" id="d-body"></div>
   </div>
-</footer>
-<div style="background:var(--bg-secondary);border-top:1px solid var(--border);padding:1rem 2rem;font-size:12px;color:var(--text-muted);line-height:1.7;text-align:center">
-  All product names, logos, and trademarks are the property of their respective owners. DWForge is not affiliated with, endorsed by, or officially connected to Salesforce, SAP, Microsoft, Oracle, Workday, NetSuite, or any other platform listed on this site.
 </div>
 
+<!-- SAVING -->
+<div class="saving" id="saving"><div class="spin"></div><span>Saving to GitHub...</span></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const ADMIN_PASSWORD='__ADMIN_PASSWORD__';
+const REPO_OWNER='vijay5412';
+const REPO_NAME='ops-control-tower';
+const DATA_FILE='data/issues.json';
+
+let issues=[],isAdmin=false,editingId=null,modalLogs=[],charts={},fileSHA=null,GH_TOKEN='';
+
+const AV_COLORS=['#1a56db','#7c3aed','#db2777','#059669','#d97706','#dc2626','#0891b2','#65a30d'];
+function avColor(n){let h=0;for(let c of(n||'?'))h=(h*31+c.charCodeAt(0))&0xffff;return AV_COLORS[h%AV_COLORS.length]}
+function initials(n){return(n||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
+
+function doLogin(){
+  const entered=document.getElementById('admin-pass').value;
+  const token=document.getElementById('admin-token').value.trim();
+  const ok=(entered===ADMIN_PASSWORD);
+  if(ok&&token){GH_TOKEN=token;isAdmin=true;launch()}
+  else if(ok&&!token){document.getElementById('login-error').textContent='⚠ GitHub token is required for admin access.';document.getElementById('login-error').style.display='block'}
+  else{document.getElementById('login-error').textContent='⚠ Incorrect password. Please try again.';document.getElementById('login-error').style.display='block'}
+}
+function enterViewMode(){isAdmin=false;launch()}
+function launch(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  if(isAdmin){
+    document.getElementById('admin-pill').style.display='inline-block';
+    document.getElementById('logout-btn').style.display='inline-block';
+    document.getElementById('add-btn').style.display='flex';
+  }
+  loadData();
+  setInterval(loadData,30000);
+}
+function logout(){location.reload()}
+
+async function loadData(){
+  try{
+    const h={'Accept':'application/vnd.github.v3+json'};
+    if(isAdmin&&GH_TOKEN!=='__GH_TOKEN__')h['Authorization']=`token ${GH_TOKEN}`;
+    const r=await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATA_FILE}`,{headers:h});
+    if(r.ok){const j=await r.json();fileSHA=j.sha;issues=JSON.parse(atob(j.content.replace(/\n/g,'')))}
+  }catch(e){}
+  render();
+  document.getElementById('last-refresh').textContent='Live · '+new Date().toLocaleTimeString();
+}
+
+async function saveData(){
+  showSaving(true);
+  try{
+    const issuesJson=JSON.stringify(issues,null,2);
+    const r=await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/save-data.yml/dispatches`,{
+      method:'POST',
+      headers:{'Authorization':`token ${GH_TOKEN}`,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'},
+      body:JSON.stringify({
+        ref:'main',
+        inputs:{issues_data:issuesJson}
+      })
+    });
+    if(r.status===204){
+      toast('✓ Saving... data will update in ~30 seconds','t-ok');
+      // Poll for updated data after 35 seconds
+      setTimeout(loadData, 35000);
+    } else {
+      const err=await r.json().catch(()=>({}));
+      toast(`⚠ Save failed: ${err.message||r.status}`,'t-err');
+    }
+  }catch(e){toast('⚠ Network error — check connection','t-err')}
+  showSaving(false);
+}
+
+function render(){kpis();charts_();renderTable()}
+
+function kpis(){
+  document.getElementById('kpi-total').textContent=issues.length;
+  document.getElementById('kpi-analysis').textContent=issues.filter(i=>i.status==='Analysis in Progress').length;
+  document.getElementById('kpi-validation').textContent=issues.filter(i=>i.status==='Validation in Progress').length;
+  document.getElementById('kpi-resolved').textContent=issues.filter(i=>i.status==='Resolved').length;
+  document.getElementById('kpi-closed').textContent=issues.filter(i=>i.status==='Closed').length;
+  document.getElementById('kpi-sla').textContent=issues.filter(i=>sla(i).l==='breach').length;
+}
+
+function charts_(){
+  const sd=[issues.filter(i=>i.status==='Analysis in Progress').length,issues.filter(i=>i.status==='Validation in Progress').length,issues.filter(i=>i.status==='Resolved').length,issues.filter(i=>i.status==='Closed').length];
+  const cd=[issues.filter(i=>i.criticality==='High').length,issues.filter(i=>i.criticality==='Medium').length];
+  const opts={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#475569',font:{size:11},boxWidth:12,padding:12}}}};
+  if(charts.s)charts.s.destroy();
+  charts.s=new Chart(document.getElementById('chart-status'),{type:'doughnut',data:{labels:['Analysis','Validation','Resolved','Closed'],datasets:[{data:sd,backgroundColor:['#6c2bd9','#c27803','#057a55','#6b7280'],borderWidth:0,hoverOffset:4}]},options:{...opts,cutout:'62%'}});
+  if(charts.c)charts.c.destroy();
+  charts.c=new Chart(document.getElementById('chart-crit'),{type:'doughnut',data:{labels:['High','Medium'],datasets:[{data:cd,backgroundColor:['#e02424','#c27803'],borderWidth:0,hoverOffset:4}]},options:{...opts,cutout:'62%'}});
+  const days=Array.from({length:14},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(13-i));return d.toISOString().split('T')[0]});
+  const td=days.map(d=>issues.filter(i=>i.dateReported&&i.dateReported.startsWith(d)).length);
+  if(charts.t)charts.t.destroy();
+  charts.t=new Chart(document.getElementById('chart-trend'),{type:'bar',data:{labels:days.map(d=>d.slice(5)),datasets:[{data:td,backgroundColor:'rgba(26,86,219,0.15)',borderColor:'#1a56db',borderWidth:1.5,borderRadius:4,hoverBackgroundColor:'rgba(26,86,219,0.3)'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'#f1f5f9'}},y:{ticks:{color:'#94a3b8',font:{size:10},stepSize:1},grid:{color:'#f1f5f9'},beginAtZero:true}}}});
+}
+
+function filtered(){
+  const q=document.getElementById('search-input').value.toLowerCase();
+  const fs=document.getElementById('filter-status').value;
+  const fc=document.getElementById('filter-crit').value;
+  const ft=document.getElementById('filter-type').value;
+  return issues.filter(i=>{
+    if(fs&&i.status!==fs)return false;
+    if(fc&&i.criticality!==fc)return false;
+    if(ft&&i.rootCauseType!==ft)return false;
+    if(q&&!`${i.incidentNumber} ${i.title} ${i.assignee} ${i.reporter}`.toLowerCase().includes(q))return false;
+    return true;
+  });
+}
+
+function renderTable(){
+  const data=filtered();
+  document.getElementById('table-count').textContent=`${data.length} incident${data.length!==1?'s':''}`;
+  const el=document.getElementById('table-body');
+  if(!data.length){el.innerHTML=`<div class="empty"><div class="empty-ico">📋</div><div class="empty-t">${issues.length?'No matching incidents':'No incidents logged yet'}</div><div class="empty-s">${issues.length?'Try adjusting your filters':'Add your first production incident to get started'}</div></div>`;return}
+  const ac=isAdmin?'<th>Actions</th>':'';
+  let h=`<table><thead><tr><th>Incident #</th><th>Title / Date</th><th>Criticality</th><th>Status</th><th>SLA</th><th>Root Cause</th><th>Assignee</th><th>Reporter</th><th>Latest Update</th>${ac}</tr></thead><tbody>`;
+  for(const i of data){
+    const s=sla(i);const ll=i.logs&&i.logs.length?i.logs[i.logs.length-1]:null;
+    const ab=isAdmin?`<td><div class="action-row"><button class="act act-edit" onclick="event.stopPropagation();openEdit('${i.id}')">Edit</button><button class="act act-del" onclick="event.stopPropagation();delIssue('${i.id}')">Delete</button></div></td>`:'';
+    h+=`<tr onclick="openDetail('${i.id}')">
+      <td><span class="inc-num">${i.incidentNumber}</span></td>
+      <td><div class="issue-title">${i.title}</div><div class="issue-date">${fDate(i.dateReported)}</div></td>
+      <td>${critB(i.criticality)}</td>
+      <td>${statB(i.status)}</td>
+      <td><span class="sla sla-${s.l}">${s.label}</span></td>
+      <td><span style="font-size:11px;color:var(--text2);font-weight:500">${i.rootCauseType||'—'}</span></td>
+      <td>${pCell(i.assignee)}</td>
+      <td>${pCell(i.reporter)}</td>
+      <td>${ll?`<div class="log-preview">${ll.text}</div><div class="log-time">${fDate(ll.time)}</div>`:'<span style="color:var(--text3);font-size:11px">No updates</span>'}</td>
+      ${ab}</tr>`;
+  }
+  el.innerHTML=h+'</tbody></table>';
+}
+
+function critB(c){if(c==='High')return'<span class="badge b-high">● High</span>';if(c==='Medium')return'<span class="badge b-medium">● Medium</span>';return`<span class="badge">${c||'—'}</span>`}
+function statB(s){const m={'Analysis in Progress':'b-analysis','Validation in Progress':'b-validation','Resolved':'b-resolved','Closed':'b-closed'};return`<span class="badge ${m[s]||''}">${s||'—'}</span>`}
+function pCell(n){if(!n)return'<span style="color:var(--text3);font-size:11px">—</span>';return`<div class="person-cell"><div class="avatar" style="background:${avColor(n)}">${initials(n)}</div><span class="person-name">${n}</span></div>`}
+function sla(i){
+  if(!i.dateReported||['Resolved','Closed'].includes(i.status))return{l:'ok',label:'✓ OK'};
+  const h=(Date.now()-new Date(i.dateReported).getTime())/3600000;
+  if(h>48)return{l:'breach',label:`⚠ ${Math.floor(h)}h`};
+  if(h>24)return{l:'warn',label:`⚡ ${Math.floor(h)}h`};
+  return{l:'ok',label:`${Math.floor(h)}h`};
+}
+function fDate(d){if(!d)return'—';return new Date(d).toLocaleString('en-AU',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+
+function openDetail(id){
+  const i=issues.find(x=>x.id===id);if(!i)return;
+  const s=sla(i);
+  document.getElementById('d-inc').textContent=i.incidentNumber;
+  document.getElementById('d-date').textContent=`Reported: ${fDate(i.dateReported)}`;
+  document.getElementById('d-body').innerHTML=`
+    <div class="detail-grid">
+      <div><div class="dl">Title</div><div class="dv" style="font-weight:700">${i.title}</div></div>
+      <div><div class="dl">Criticality</div><div class="dv">${critB(i.criticality)}</div></div>
+      <div><div class="dl">Status</div><div class="dv">${statB(i.status)}</div></div>
+      <div><div class="dl">SLA</div><div class="dv"><span class="sla sla-${s.l}">${s.label}</span></div></div>
+      <div><div class="dl">Root Cause Type</div><div class="dv">${i.rootCauseType||'Not yet determined'}</div></div>
+      <div><div class="dl">Release Quarter</div><div class="dv">${i.releaseQuarter||'—'}</div></div>
+      <div><div class="dl">Assignee</div><div class="dv">${pCell(i.assignee)}</div></div>
+      <div><div class="dl">Reporter</div><div class="dv">${pCell(i.reporter)}</div></div>
+      <div><div class="dl">SRE Incident</div><div class="dv">${i.sreIncident||'—'}</div></div>
+      <div><div class="dl">Jira / Intake</div><div class="dv">${i.jiraRef||'—'}</div></div>
+    </div>
+    ${i.description?`<div style="margin-bottom:20px"><div class="dl">Problem Statement</div><div style="font-size:13px;color:var(--text2);line-height:1.7;margin-top:6px">${i.description}</div></div>`:''}
+    <div class="form-section-title" style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px">Activity Log</div>
+    ${!(i.logs&&i.logs.length)?'<div style="color:var(--text3);font-size:13px">No log entries yet.</div>':i.logs.slice().reverse().map(l=>`<div class="log-entry"><div class="log-meta">${fDate(l.time)}</div><div class="log-txt">${l.text}</div></div>`).join('')}
+  `;
+  document.getElementById('modal-detail').classList.add('open');
+}
+
+function openAdd(){
+  editingId=null;modalLogs=[];
+  document.getElementById('modal-title').textContent='New Production Incident';
+  document.getElementById('f-inc').value=genINC();
+  document.getElementById('f-date').value=new Date().toISOString().slice(0,16);
+  ['f-title','f-desc','f-release','f-assignee','f-reporter','f-sre','f-jira'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-crit').value='High';
+  document.getElementById('f-status').value='Analysis in Progress';
+  document.getElementById('f-type').value='';
+  renderModalLogs();
+  document.getElementById('modal-add').classList.add('open');
+}
+
+function openEdit(id){
+  const i=issues.find(x=>x.id===id);if(!i)return;
+  editingId=id;modalLogs=[...(i.logs||[])];
+  document.getElementById('modal-title').textContent=`Edit — ${i.incidentNumber}`;
+  document.getElementById('f-inc').value=i.incidentNumber;
+  document.getElementById('f-date').value=i.dateReported?i.dateReported.slice(0,16):'';
+  document.getElementById('f-title').value=i.title||'';
+  document.getElementById('f-desc').value=i.description||'';
+  document.getElementById('f-crit').value=i.criticality||'High';
+  document.getElementById('f-status').value=i.status||'Analysis in Progress';
+  document.getElementById('f-type').value=i.rootCauseType||'';
+  document.getElementById('f-release').value=i.releaseQuarter||'';
+  document.getElementById('f-assignee').value=i.assignee||'';
+  document.getElementById('f-reporter').value=i.reporter||'';
+  document.getElementById('f-sre').value=i.sreIncident||'';
+  document.getElementById('f-jira').value=i.jiraRef||'';
+  renderModalLogs();
+  document.getElementById('modal-add').classList.add('open');
+}
+
+function renderModalLogs(){
+  const el=document.getElementById('modal-logs');
+  el.innerHTML=modalLogs.length?modalLogs.slice().reverse().map(l=>`<div class="log-entry"><div class="log-meta">${fDate(l.time)}</div><div class="log-txt">${l.text}</div></div>`).join(''):'';
+}
+
+function addLog(){
+  const t=document.getElementById('new-log').value.trim();if(!t)return;
+  modalLogs.push({text:t,time:new Date().toISOString()});
+  document.getElementById('new-log').value='';
+  renderModalLogs();
+}
+
+function saveIssue(){
+  const title=document.getElementById('f-title').value.trim();
+  if(!title){toast('⚠ Title is required','t-err');return}
+  const d={
+    id:editingId||genId(),incidentNumber:document.getElementById('f-inc').value,
+    dateReported:document.getElementById('f-date').value,title,
+    description:document.getElementById('f-desc').value,
+    criticality:document.getElementById('f-crit').value,
+    status:document.getElementById('f-status').value,
+    rootCauseType:document.getElementById('f-type').value,
+    releaseQuarter:document.getElementById('f-release').value,
+    assignee:document.getElementById('f-assignee').value,
+    reporter:document.getElementById('f-reporter').value,
+    sreIncident:document.getElementById('f-sre').value,
+    jiraRef:document.getElementById('f-jira').value,
+    logs:modalLogs,updatedAt:new Date().toISOString()
+  };
+  if(editingId){const idx=issues.findIndex(i=>i.id===editingId);if(idx>-1)issues[idx]=d}
+  else{d.createdAt=new Date().toISOString();issues.unshift(d)}
+  closeModal('modal-add');render();saveData();
+}
+
+function delIssue(id){
+  if(!confirm('Delete this incident? This cannot be undone.'))return;
+  issues=issues.filter(i=>i.id!==id);render();saveData();
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function genINC(){return`INC-${new Date().getFullYear()}-${String(issues.length+1).padStart(4,'0')}`}
+function exportData(){const b=new Blob([JSON.stringify(issues,null,2)],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`ops-bridge-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(u)}
+function showSaving(s){document.getElementById('saving').classList.toggle('show',s)}
+function toast(msg,cls){const el=document.getElementById('toast');el.textContent=msg;el.className=`toast show ${cls}`;setTimeout(()=>el.classList.remove('show'),3000)}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(m=>m.classList.remove('open'))});
+</script>
 </body>
 </html>
