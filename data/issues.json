@@ -2,7 +2,7 @@
   {
     "id": "mt3r9mdfvxuj",
     "incidentNumber": "INC-2026-0001",
-    "dateReported": "2026-08-22T18:55",
+    "dateReported": "2026-08-21T18:55",
     "title": "Payment Gateway Timeout - Checkout Failures",
     "description": "Payment gateway intermittently timing out on the checkout flow since 14:00 AEST. Approximately 15% of transactions are failing. Affected systems: Payment Service API, Order Management Service. Customer impact: orders not completing, revenue loss ongoing. Error: Connection timeout after 30s on POST /api/payments/process. SRE team alerted and monitoring.",
     "criticality": "High",
@@ -23,6 +23,6 @@
         "time": "2026-08-22T02:26:27.475Z"
       }
     ],
-    "updatedAt": "2026-08-22T02:31:24.777Z"
+    "updatedAt": "2026-08-22T02:32:28.085Z"
   }
 ]
