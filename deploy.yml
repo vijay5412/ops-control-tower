@@ -2,8 +2,7 @@ name: Deploy Ops Bridge
 
 on:
   push:
-    branches:
-      - main
+    branches: [main, feature/dashboard]
   workflow_dispatch:
 
 permissions:
@@ -18,7 +17,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Inject secrets into HTML
+      - name: Inject secrets
         run: |
           sed -i "s|__ADMIN_PASSWORD__|${{ secrets.ADMIN_PASSWORD }}|g" index.html
           sed -i "s|__GH_TOKEN__|${{ secrets.GH_TOKEN }}|g" index.html
@@ -29,3 +28,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./
           publish_branch: gh-pages
+          keep_files: false
