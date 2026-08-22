@@ -1,0 +1,33 @@
+name: Save Issues Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      issues_data:
+        description: 'JSON data to save'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  save:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: feature/dashboard
+
+      - name: Write issues.json
+        run: |
+          echo '${{ github.event.inputs.issues_data }}' > data/issues.json
+
+      - name: Commit and push
+        run: |
+          git config user.name "ops-bridge-bot"
+          git config user.email "ops-bridge@noreply.github.com"
+          git add data/issues.json
+          git diff --cached --quiet || git commit -m "ops-bridge: update issues [$(date -u +%Y-%m-%dT%H:%M:%SZ)]"
+          git push

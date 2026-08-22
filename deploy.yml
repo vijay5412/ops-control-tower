@@ -17,10 +17,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Inject secrets
+      - name: Inject admin password only
         run: |
           sed -i "s|__ADMIN_PASSWORD__|${{ secrets.ADMIN_PASSWORD }}|g" index.html
-          sed -i "s|__GH_TOKEN__|${{ secrets.GH_TOKEN }}|g" index.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
