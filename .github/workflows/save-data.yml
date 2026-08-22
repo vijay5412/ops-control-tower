@@ -26,7 +26,7 @@ jobs:
           ISSUES_DATA: ${{ github.event.inputs.issues_data }}
         run: |
           mkdir -p data
-          echo "$ISSUES_DATA" > data/issues.json
+          printf '%s' "$ISSUES_DATA" > data/issues.json
 
       - name: Commit and push
         run: |
