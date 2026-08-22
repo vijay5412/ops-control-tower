@@ -428,9 +428,18 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
           <option value="Bug / Code Issue">Bug / Code</option>
           <option value="Requirement Issue">Requirement</option>
         </select>
+        <select class="filter-sel" id="filter-quarter" onchange="renderTable()">
+          <option value="">All Quarters</option>
+        </select>
+        <select class="filter-sel" id="filter-assignee" onchange="renderTable()">
+          <option value="">All Assignees</option>
+        </select>
+        <button class="btn-secondary" onclick="clearFilters()" style="font-size:12px;padding:8px 10px">✕ Clear</button>
       </div>
       <div class="toolbar-right">
-        <button class="btn-secondary" onclick="exportData()">⬇ Export</button>
+        <button class="btn-secondary" onclick="exportCSV()">⬇ CSV</button>
+        <button class="btn-secondary" onclick="exportData()">⬇ JSON</button>
+        <button class="btn-secondary" onclick="printReport()">🖨 Print</button>
         <button class="btn-primary" id="add-btn" onclick="openAdd()" style="display:none">+ Add Incident</button>
       </div>
     </div>
@@ -586,7 +595,7 @@ async function saveData(){
   showSaving(false);
 }
 
-function render(){kpis();charts_();renderTable()}
+function render(){kpis();charts_();renderTable();populateFilterDropdowns()}
 
 function kpis(){
   document.getElementById('kpi-total').textContent=issues.length;
@@ -616,11 +625,15 @@ function filtered(){
   const fs=document.getElementById('filter-status').value;
   const fc=document.getElementById('filter-crit').value;
   const ft=document.getElementById('filter-type').value;
+  const fq=document.getElementById('filter-quarter').value;
+  const fa=document.getElementById('filter-assignee').value;
   return issues.filter(i=>{
     if(fs&&i.status!==fs)return false;
     if(fc&&i.criticality!==fc)return false;
     if(ft&&i.rootCauseType!==ft)return false;
-    if(q&&!`${i.incidentNumber} ${i.title} ${i.assignee} ${i.reporter}`.toLowerCase().includes(q))return false;
+    if(fq&&i.releaseQuarter!==fq)return false;
+    if(fa&&i.assignee!==fa)return false;
+    if(q&&!`${i.incidentNumber} ${i.title} ${i.assignee} ${i.reporter} ${i.jiraRef} ${i.sreIncident}`.toLowerCase().includes(q))return false;
     return true;
   });
 }
@@ -631,19 +644,25 @@ function renderTable(){
   const el=document.getElementById('table-body');
   if(!data.length){el.innerHTML=`<div class="empty"><div class="empty-ico">📋</div><div class="empty-t">${issues.length?'No matching incidents':'No incidents logged yet'}</div><div class="empty-s">${issues.length?'Try adjusting your filters':'Add your first production incident to get started'}</div></div>`;return}
   const ac=isAdmin?'<th>Actions</th>':'';
-  let h=`<table><thead><tr><th>Incident #</th><th>Title / Date</th><th>Criticality</th><th>Status</th><th>SLA</th><th>Root Cause</th><th>Assignee</th><th>Reporter</th><th>Latest Update</th>${ac}</tr></thead><tbody>`;
+  let h=`<table><thead><tr><th>Incident #</th><th>Title / Date</th><th>Criticality</th><th>Status</th><th>SLA</th><th>Age</th><th>Root Cause</th><th>Assignee</th><th>Reporter</th><th>Updates</th><th>Latest Update</th>${ac}</tr></thead><tbody>`;
   for(const i of data){
     const s=sla(i);const ll=i.logs&&i.logs.length?i.logs[i.logs.length-1]:null;
     const ab=isAdmin?`<td><div class="action-row"><button class="act act-edit" onclick="event.stopPropagation();openEdit('${i.id}')">Edit</button><button class="act act-del" onclick="event.stopPropagation();delIssue('${i.id}')">Delete</button></div></td>`:'';
+    const ageDays=i.dateReported?Math.floor((Date.now()-new Date(i.dateReported).getTime())/86400000):0;
+    const ageLabel=ageDays===0?'Today':ageDays===1?'1 day':`${ageDays}d`;
+    const logCount=(i.logs||[]).length;
+    const sreFlag=!i.sreIncident&&!['Closed'].includes(i.status)?'<span title="SRE incident # missing" style="color:var(--medium);font-size:11px">⚠ No SRE#</span>':'';
     h+=`<tr onclick="openDetail('${i.id}')">
-      <td><span class="inc-num">${i.incidentNumber}</span></td>
+      <td><span class="inc-num">${i.incidentNumber}</span>${sreFlag?'<br>'+sreFlag:''}</td>
       <td><div class="issue-title">${i.title}</div><div class="issue-date">${fDate(i.dateReported)}</div></td>
       <td>${critB(i.criticality)}</td>
       <td>${statB(i.status)}</td>
       <td><span class="sla sla-${s.l}">${s.label}</span></td>
+      <td><span style="font-size:11px;color:var(--text3);font-family:var(--mono)">${ageLabel}</span></td>
       <td><span style="font-size:11px;color:var(--text2);font-weight:500">${i.rootCauseType||'—'}</span></td>
       <td>${pCell(i.assignee)}</td>
       <td>${pCell(i.reporter)}</td>
+      <td><span style="font-size:12px;font-family:var(--mono);color:var(--text2);font-weight:600">${logCount}</span></td>
       <td>${ll?`<div class="log-preview">${ll.text}</div><div class="log-time">${fDate(ll.time)}</div>`:'<span style="color:var(--text3);font-size:11px">No updates</span>'}</td>
       ${ab}</tr>`;
   }
@@ -656,9 +675,10 @@ function pCell(n){if(!n)return'<span style="color:var(--text3);font-size:11px">�
 function sla(i){
   if(!i.dateReported||['Resolved','Closed'].includes(i.status))return{l:'ok',label:'✓ OK'};
   const h=(Date.now()-new Date(i.dateReported).getTime())/3600000;
-  if(h>48)return{l:'breach',label:`⚠ ${Math.floor(h)}h`};
-  if(h>24)return{l:'warn',label:`⚡ ${Math.floor(h)}h`};
-  return{l:'ok',label:`${Math.floor(h)}h`};
+  const hDisplay=Math.floor(h);
+  if(h>48)return{l:'breach',label:`⚠ ${hDisplay}h`};
+  if(h>24)return{l:'warn',label:`⚡ ${hDisplay}h`};
+  return{l:'ok',label:`${hDisplay}h`};
 }
 function fDate(d){if(!d)return'—';return new Date(d).toLocaleString('en-AU',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
 
@@ -763,9 +783,79 @@ function closeModal(id){document.getElementById(id).classList.remove('open')}
 function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function genINC(){return`INC-${new Date().getFullYear()}-${String(issues.length+1).padStart(4,'0')}`}
 function exportData(){const b=new Blob([JSON.stringify(issues,null,2)],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`ops-bridge-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(u)}
+
+function exportCSV(){
+  const headers=['Incident #','Title','Date Reported','Criticality','Status','Root Cause Type','Release Quarter','Assignee','Reporter','SRE Incident #','Jira / Intake Ref','Log Count','Age (Days)','Last Updated'];
+  const rows=issues.map(i=>{
+    const age=i.dateReported?Math.floor((Date.now()-new Date(i.dateReported).getTime())/86400000):0;
+    return [i.incidentNumber,`"${(i.title||'').replace(/"/g,'""')}"`,i.dateReported,i.criticality,i.status,i.rootCauseType||'',i.releaseQuarter||'',i.assignee||'',i.reporter||'',i.sreIncident||'',i.jiraRef||'',(i.logs||[]).length,age,i.updatedAt||''].join(',');
+  });
+  const csv=[headers.join(','),...rows].join('\n');
+  const b=new Blob([csv],{type:'text/csv'});
+  const u=URL.createObjectURL(b);
+  const a=document.createElement('a');
+  a.href=u;a.download=`ops-bridge-${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(u);
+  toast('✓ CSV exported','t-ok');
+}
+
+function printReport(){
+  const data=filtered();
+  const rows=data.map(i=>`
+    <tr>
+      <td>${i.incidentNumber}</td>
+      <td>${i.title}</td>
+      <td>${i.criticality}</td>
+      <td>${i.status}</td>
+      <td>${i.rootCauseType||'—'}</td>
+      <td>${i.releaseQuarter||'—'}</td>
+      <td>${i.assignee||'—'}</td>
+      <td>${i.jiraRef||'—'}</td>
+      <td>${fDate(i.dateReported)}</td>
+    </tr>`).join('');
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Ops Bridge Report — ${new Date().toLocaleDateString()}</title>
+  <style>body{font-family:Arial,sans-serif;font-size:12px;padding:20px}h1{font-size:18px;margin-bottom:4px}p{color:#666;margin-bottom:16px;font-size:11px}table{width:100%;border-collapse:collapse}th{background:#0f2d5c;color:#fff;padding:8px;text-align:left;font-size:11px}td{padding:7px 8px;border-bottom:1px solid #e5e7eb;font-size:11px}tr:nth-child(even){background:#f8fafd}@media print{body{padding:0}}</style>
+  </head><body>
+  <h1>Ops Bridge — Production Incident Report</h1>
+  <p>Generated: ${new Date().toLocaleString()} | Total: ${data.length} incident${data.length!==1?'s':''}</p>
+  <table><thead><tr><th>Incident #</th><th>Title</th><th>Criticality</th><th>Status</th><th>Root Cause</th><th>Release</th><th>Assignee</th><th>Jira/Intake</th><th>Date Reported</th></tr></thead>
+  <tbody>${rows}</tbody></table>
+  <script>window.onload=()=>window.print()<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
+function populateFilterDropdowns(){
+  // Quarter filter
+  const quarters=[...new Set(issues.map(i=>i.releaseQuarter).filter(Boolean))].sort();
+  const qSel=document.getElementById('filter-quarter');
+  const qVal=qSel.value;
+  qSel.innerHTML='<option value="">All Quarters</option>'+quarters.map(q=>`<option value="${q}">${q}</option>`).join('');
+  qSel.value=qVal;
+  // Assignee filter
+  const assignees=[...new Set(issues.map(i=>i.assignee).filter(Boolean))].sort();
+  const aSel=document.getElementById('filter-assignee');
+  const aVal=aSel.value;
+  aSel.innerHTML='<option value="">All Assignees</option>'+assignees.map(a=>`<option value="${a}">${a}</option>`).join('');
+  aSel.value=aVal;
+}
+function clearFilters(){
+  document.getElementById('search-input').value='';
+  document.getElementById('filter-status').value='';
+  document.getElementById('filter-crit').value='';
+  document.getElementById('filter-type').value='';
+  document.getElementById('filter-quarter').value='';
+  document.getElementById('filter-assignee').value='';
+  renderTable();
+}
 function showSaving(s){document.getElementById('saving').classList.toggle('show',s)}
 function toast(msg,cls){const el=document.getElementById('toast');el.textContent=msg;el.className=`toast show ${cls}`;setTimeout(()=>el.classList.remove('show'),3000)}
-document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(m=>m.classList.remove('open'))});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(m=>m.classList.remove('open'));
+  if(e.key==='n'&&isAdmin&&!document.querySelector('.overlay.open'))openAdd();
+});
+// SLA auto-refresh every 60 seconds
+setInterval(()=>{renderTable();kpis()},60000);
 </script>
 </body>
 </html>
