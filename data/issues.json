@@ -6,7 +6,7 @@
     "title": "Eligibility Check Missing Court Order Validation",
     "description": "Risk Criteria team identified that the eligibility check module does not validate court order expiry dates before approving case referrals. This is causing incorrect eligibility approvals. Affected: Eligibility Service, Case Referral workflow. Business impact: compliance risk, incorrect case assignments being made.",
     "criticality": "Medium",
-    "status": "Validation in Progress",
+    "status": "Analysis in Progress",
     "rootCauseType": "Requirement Issue",
     "releaseQuarter": "",
     "assignee": "Ryan Glueck",
@@ -16,10 +16,10 @@
     "logs": [
       {
         "text": "48hr RCA follow-up completed. Root cause confirmed as Requirement Issue — court order expiry validation was never included in original requirements. Intake INT-0892 submitted to Risk Criteria team. PBR scheduled. Design discussion and LOE estimates to be taken from Tech team. Release quarter to be confirmed post-PBR.",
-        "time": "2026-08-22T02:46:37.568Z"
+        "time": "2026-08-22T02:47:08.527Z"
       }
     ],
-    "updatedAt": "2026-08-22T02:46:39.063Z"
+    "updatedAt": "2026-08-22T02:47:09.722Z"
   },
   {
     "id": "mt3r9mdfvxuj",
