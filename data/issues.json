@@ -2,7 +2,7 @@
   {
     "id": "mt3r9mdfvxuj",
     "incidentNumber": "INC-2026-0001",
-    "dateReported": "2026-08-19T18:55",
+    "dateReported": "2026-08-21T18:55",
     "title": "Payment Gateway Timeout - Checkout Failures",
     "description": "Payment gateway intermittently timing out on the checkout flow since 14:00 AEST. Approximately 15% of transactions are failing. Affected systems: Payment Service API, Order Management Service. Customer impact: orders not completing, revenue loss ongoing. Error: Connection timeout after 30s on POST /api/payments/process. SRE team alerted and monitoring.",
     "criticality": "High",
@@ -15,14 +15,14 @@
     "jiraRef": "",
     "logs": [
       {
-        "text": "Production issue raised by Risk Criteria team. PO POC and Tech team engaged. SRE team alerted. Initial analysis started ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ reviewing payment service logs.",
+        "text": "Production issue raised by Risk Criteria team. PO POC and Tech team engaged. SRE team alerted. Initial analysis started ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ reviewing payment service logs.",
         "time": "2026-08-22T02:24:53.017Z"
       },
       {
-        "text": "24hr placeholder call held. Attendees: Risk Criteria team, PO POC, Tech lead (Rohit Kumar), SRE team. Problem statement reviewed. Initial RCA discussion ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ suspected timeout in payment gateway connection pool. Tech team needs 48hrs for deeper analysis. Follow-up RCA call scheduled.",
+        "text": "24hr placeholder call held. Attendees: Risk Criteria team, PO POC, Tech lead (Rohit Kumar), SRE team. Problem statement reviewed. Initial RCA discussion ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ suspected timeout in payment gateway connection pool. Tech team needs 48hrs for deeper analysis. Follow-up RCA call scheduled.",
         "time": "2026-08-22T02:26:27.475Z"
       }
     ],
-    "updatedAt": "2026-08-22T02:34:59.874Z"
+    "updatedAt": "2026-08-22T02:36:01.436Z"
   }
 ]
