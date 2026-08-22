@@ -6,7 +6,7 @@
     "title": "Payment Gateway Timeout - Checkout Failures",
     "description": "Payment gateway intermittently timing out on the checkout flow since 14:00 AEST. Approximately 15% of transactions are failing. Affected systems: Payment Service API, Order Management Service. Customer impact: orders not completing, revenue loss ongoing. Error: Connection timeout after 30s on POST /api/payments/process. SRE team alerted and monitoring.",
     "criticality": "High",
-    "status": "Resolved",
+    "status": "Closed",
     "rootCauseType": "Bug / Code Issue",
     "releaseQuarter": "Q3 2026",
     "assignee": "Rohit Kumar",
@@ -15,11 +15,11 @@
     "jiraRef": "DEF-4821",
     "logs": [
       {
-        "text": "Production issue raised by Risk Criteria team. PO POC and Tech team engaged. SRE team alerted. Initial analysis started ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ reviewing payment service logs.",
+        "text": "Production issue raised by Risk Criteria team. PO POC and Tech team engaged. SRE team alerted. Initial analysis started ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ reviewing payment service logs.",
         "time": "2026-08-22T02:24:53.017Z"
       },
       {
-        "text": "24hr placeholder call held. Attendees: Risk Criteria team, PO POC, Tech lead (Rohit Kumar), SRE team. Problem statement reviewed. Initial RCA discussion ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ suspected timeout in payment gateway connection pool. Tech team needs 48hrs for deeper analysis. Follow-up RCA call scheduled.",
+        "text": "24hr placeholder call held. Attendees: Risk Criteria team, PO POC, Tech lead (Rohit Kumar), SRE team. Problem statement reviewed. Initial RCA discussion ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ suspected timeout in payment gateway connection pool. Tech team needs 48hrs for deeper analysis. Follow-up RCA call scheduled.",
         "time": "2026-08-22T02:26:27.475Z"
       },
       {
@@ -27,10 +27,14 @@
         "time": "2026-08-22T02:37:38.624Z"
       },
       {
-        "text": "Fix deployed to production. DEF-4821 resolved — connection pool configuration updated, max connections increased and idle timeout set. Payment gateway timeout issue confirmed resolved. Monitoring for 24hrs before closing. Release Q3 2026.",
+        "text": "Fix deployed to production. DEF-4821 resolved â connection pool configuration updated, max connections increased and idle timeout set. Payment gateway timeout issue confirmed resolved. Monitoring for 24hrs before closing. Release Q3 2026.",
         "time": "2026-08-22T02:39:32.548Z"
+      },
+      {
+        "text": "PO and Risk Criteria team verified fix in production. Payment gateway operating normally. 0% transaction failure rate confirmed. Issue closed. Post-incident review scheduled for next sprint.",
+        "time": "2026-08-22T02:40:38.369Z"
       }
     ],
-    "updatedAt": "2026-08-22T02:39:34.206Z"
+    "updatedAt": "2026-08-22T02:40:40.115Z"
   }
 ]
