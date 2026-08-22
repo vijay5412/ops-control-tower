@@ -489,7 +489,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
         <div class="fg"><label class="fl">Release Quarter</label><input class="fi" id="f-release" placeholder="e.g. Q3 2025"/></div>
         <div class="fg"><label class="fl">Assignee (Tech)</label><input class="fi" id="f-assignee" placeholder="Full name"/></div>
         <div class="fg"><label class="fl">Reporter (PO / Risk)</label><input class="fi" id="f-reporter" placeholder="Full name"/></div>
-        <div class="fg"><label class="fl">SRE Incident #</label><input class="fi" id="f-sre" placeholder="SRE ticket reference"/></div>
+        <div class="fg"><label class="fl">SRE Incident #</label><input class="fi" id="f-sre" placeholder="e.g. 0891 or SRE-0891" oninput="autoFormatSRE(this)"/></div>
         <div class="fg"><label class="fl">Jira / Intake Ref</label><input class="fi" id="f-jira" placeholder="DEF-XXXX or INT-XXXX"/></div>
       </div>
       <div class="form-section">
@@ -752,20 +752,38 @@ function addLog(){
   renderModalLogs();
 }
 
+function autoFormatSRE(el){
+  let v=el.value.trim();
+  if(v&&!v.startsWith('SRE-')&&v!=='SRE-'){
+    // Only auto-prefix if user typed a number or partial ref
+    if(/^\d/.test(v))el.value='SRE-'+v;
+  }
+}
+
 function saveIssue(){
   const title=document.getElementById('f-title').value.trim();
   if(!title){toast('⚠ Title is required','t-err');return}
+  const criticality=document.getElementById('f-crit').value;
+  const sre=document.getElementById('f-sre').value.trim();
+  const status=document.getElementById('f-status').value;
+  // Mandatory SRE # for High criticality unless Closed
+  if(criticality==='High'&&!sre&&status!=='Closed'){
+    if(!confirm('⚠ This is a HIGH criticality incident with no SRE Incident # linked.\n\nIn the proposed process, SRE team must create an incident ticket for all High criticality issues.\n\nDo you want to save anyway?')){
+      document.getElementById('f-sre').focus();
+      return;
+    }
+  }
   const d={
     id:editingId||genId(),incidentNumber:document.getElementById('f-inc').value,
     dateReported:document.getElementById('f-date').value,title,
     description:document.getElementById('f-desc').value,
-    criticality:document.getElementById('f-crit').value,
-    status:document.getElementById('f-status').value,
+    criticality,
+    status,
     rootCauseType:document.getElementById('f-type').value,
     releaseQuarter:document.getElementById('f-release').value,
     assignee:document.getElementById('f-assignee').value,
     reporter:document.getElementById('f-reporter').value,
-    sreIncident:document.getElementById('f-sre').value,
+    sreIncident:sre,
     jiraRef:document.getElementById('f-jira').value,
     logs:modalLogs,updatedAt:new Date().toISOString()
   };
