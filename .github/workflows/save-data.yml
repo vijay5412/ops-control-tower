@@ -15,14 +15,18 @@ jobs:
   save:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout main
         uses: actions/checkout@v4
         with:
-          ref: feature/dashboard
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Write issues.json
+        env:
+          ISSUES_DATA: ${{ github.event.inputs.issues_data }}
         run: |
-          echo '${{ github.event.inputs.issues_data }}' > data/issues.json
+          mkdir -p data
+          echo "$ISSUES_DATA" > data/issues.json
 
       - name: Commit and push
         run: |
@@ -30,4 +34,4 @@ jobs:
           git config user.email "ops-bridge@noreply.github.com"
           git add data/issues.json
           git diff --cached --quiet || git commit -m "ops-bridge: update issues [$(date -u +%Y-%m-%dT%H:%M:%SZ)]"
-          git push
+          git push origin main
