@@ -15,11 +15,14 @@
     "jiraRef": "",
     "logs": [
       {
-        "text": "Production issue raised by Risk Criteria team. PO POC and Tech team engaged. SRE team alerted. Initial analysis started — reviewing payment service logs.",
+        "text": "Production issue raised by Risk Criteria team. PO POC and Tech team engaged. SRE team alerted. Initial analysis started â reviewing payment service logs.",
         "time": "2026-08-22T02:24:53.017Z"
+      },
+      {
+        "text": "24hr placeholder call held. Attendees: Risk Criteria team, PO POC, Tech lead (Rohit Kumar), SRE team. Problem statement reviewed. Initial RCA discussion — suspected timeout in payment gateway connection pool. Tech team needs 48hrs for deeper analysis. Follow-up RCA call scheduled.",
+        "time": "2026-08-22T02:26:27.475Z"
       }
     ],
-    "updatedAt": "2026-08-22T02:24:54.916Z",
-    "createdAt": "2026-08-22T02:24:54.916Z"
+    "updatedAt": "2026-08-22T02:26:28.578Z"
   }
 ]
