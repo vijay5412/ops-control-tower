@@ -523,7 +523,7 @@ const REPO_OWNER='vijay5412';
 const REPO_NAME='ops-control-tower';
 const DATA_FILE='data/issues.json';
 
-let issues=[],isAdmin=false,editingId=null,modalLogs=[],charts={},fileSHA=null,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='';
+let issues=[],isAdmin=false,editingId=null,modalLogs=[],charts={},fileSHA=null,GH_TOKEN='';
 
 const AV_COLORS=['#1a56db','#7c3aed','#db2777','#059669','#d97706','#dc2626','#0891b2','#65a30d'];
 function avColor(n){let h=0;for(let c of(n||'?'))h=(h*31+c.charCodeAt(0))&0xffff;return AV_COLORS[h%AV_COLORS.length]}
@@ -533,7 +533,7 @@ function doLogin(){
   const entered=document.getElementById('admin-pass').value;
   const token=document.getElementById('admin-token').value.trim();
   const ok=(entered===ADMIN_PASSWORD);
-  if(ok&&token){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=token;isAdmin=true;launch()}
+  if(ok&&token){GH_TOKEN=token;isAdmin=true;launch()}
   else if(ok&&!token){document.getElementById('login-error').textContent='⚠ GitHub token is required for admin access.';document.getElementById('login-error').style.display='block'}
   else{document.getElementById('login-error').textContent='⚠ Incorrect password. Please try again.';document.getElementById('login-error').style.display='block'}
 }
@@ -554,7 +554,7 @@ function logout(){location.reload()}
 async function loadData(){
   try{
     const h={'Accept':'application/vnd.github.v3+json'};
-    if(isAdmin&&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!=='__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__')h['Authorization']=`token ${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}`;
+    if(isAdmin&&GH_TOKEN!=='__GH_TOKEN__')h['Authorization']=`token ${GH_TOKEN}`;
     const r=await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATA_FILE}`,{headers:h});
     if(r.ok){const j=await r.json();fileSHA=j.sha;issues=JSON.parse(atob(j.content.replace(/\n/g,'')))}
   }catch(e){}
@@ -568,7 +568,7 @@ async function saveData(){
     const issuesJson=JSON.stringify(issues,null,2);
     const r=await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/save-data.yml/dispatches`,{
       method:'POST',
-      headers:{'Authorization':`token ${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}`,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'},
+      headers:{'Authorization':`token ${GH_TOKEN}`,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'},
       body:JSON.stringify({
         ref:'main',
         inputs:{issues_data:issuesJson}
